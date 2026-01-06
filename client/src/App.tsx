@@ -3,6 +3,7 @@ import { Settings } from './components/Settings';
 import { FilterBar } from './components/FilterBar';
 import { AppCard } from './components/AppCard';
 import { OrgCard } from './components/OrgCard';
+import { Pagination } from './components/Pagination';
 import { useDashboardData } from './hooks/useDashboardData';
 import type { FilterState, Repository } from './types';
 import './App.css';
@@ -11,6 +12,7 @@ function App() {
   const [token, setToken] = useState('');
   const [enterpriseUrl, setEnterpriseUrl] = useState('');
   const [isConnected, setIsConnected] = useState(false);
+  const [selectedOrg, setSelectedOrg] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     organization: '',
     appOwner: '',
@@ -26,8 +28,10 @@ function App() {
     apps, 
     loading, 
     error, 
+    pagination,
+    setPage,
     refreshData 
-  } = useDashboardData(isConnected ? token : '', enterpriseUrl);
+  } = useDashboardData(isConnected ? token : '', enterpriseUrl, selectedOrg);
 
   const handleConnect = async () => {
     setIsConnected(true);
@@ -137,7 +141,16 @@ function App() {
     if (filters.viewMode === 'apps') {
       return (
         <div className="apps-view">
-          <h2>Apps ({installationsByApp.size})</h2>
+          <div className="view-header">
+            <h2>Apps ({pagination.totalCount})</h2>
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              totalCount={pagination.totalCount}
+              perPage={pagination.perPage}
+              onPageChange={setPage}
+            />
+          </div>
           {Array.from(installationsByApp.entries()).map(([slug, insts]) => {
             const app = apps.get(slug);
             if (!app) return null;
@@ -229,6 +242,8 @@ function App() {
           onConnect={handleConnect}
           isConnected={isConnected}
           loading={loading}
+          selectedOrg={selectedOrg}
+          onSelectedOrgChange={setSelectedOrg}
         />
 
         {isConnected && !loading && (

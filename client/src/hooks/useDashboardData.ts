@@ -2,6 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
 
+interface PaginationInfo {
+  page: number;
+  perPage: number;
+  totalCount: number;
+  totalPages: number;
+}
+
 interface UseDashboardDataResult {
   organizations: Organization[];
   installations: AppInstallation[];
@@ -9,37 +16,52 @@ interface UseDashboardDataResult {
   repositories: Map<number, Repository[]>;
   loading: boolean;
   error: string | null;
+  pagination: PaginationInfo;
+  setPage: (page: number) => void;
   refreshData: () => Promise<void>;
-  loadRepositoriesForInstallation: (installationId: number) => Promise<void>;
+  loadRepositoriesForInstallation: (installationId: number, page?: number) => Promise<void>;
 }
 
-export function useDashboardData(token: string, enterpriseUrl?: string): UseDashboardDataResult {
+const PER_PAGE = 30;
+
+export function useDashboardData(token: string, enterpriseUrl?: string, filterOrg?: string): UseDashboardDataResult {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [installations, setInstallations] = useState<AppInstallation[]>([]);
   const [apps, setApps] = useState<Map<string, GitHubApp>>(new Map());
   const [repositories, setRepositories] = useState<Map<number, Repository[]>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    perPage: PER_PAGE,
+    totalCount: 0,
+    totalPages: 0,
+  });
 
-  const refreshData = useCallback(async () => {
+  const loadData = useCallback(async (page: number) => {
     if (!token) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const orgs = await api.getOrganizations(token, enterpriseUrl);
-      setOrganizations(orgs);
+      const allOrgs = await api.getOrganizations(token, enterpriseUrl);
+      const orgsToProcess = filterOrg 
+        ? allOrgs.filter(org => org.login === filterOrg) 
+        : allOrgs;
+      setOrganizations(orgsToProcess);
 
       const allInstallations: AppInstallation[] = [];
       const appsMap = new Map<string, GitHubApp>();
+      let totalCount = 0;
 
-      for (const org of orgs) {
+      for (const org of orgsToProcess) {
         try {
-          const orgInstallations = await api.getInstallationsForOrg(org.login, token, enterpriseUrl);
-          allInstallations.push(...orgInstallations);
+          const result = await api.getInstallationsForOrg(org.login, token, enterpriseUrl, page, PER_PAGE);
+          allInstallations.push(...result.installations);
+          totalCount += result.totalCount;
 
-          for (const inst of orgInstallations) {
+          for (const inst of result.installations) {
             if (!appsMap.has(inst.app_slug)) {
               const app = await api.getApp(inst.app_slug, token, enterpriseUrl);
               if (app) {
@@ -54,29 +76,41 @@ export function useDashboardData(token: string, enterpriseUrl?: string): UseDash
 
       setInstallations(allInstallations);
       setApps(appsMap);
+      setPagination({
+        page,
+        perPage: PER_PAGE,
+        totalCount,
+        totalPages: Math.ceil(totalCount / PER_PAGE),
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [token, enterpriseUrl]);
+  }, [token, enterpriseUrl, filterOrg]);
 
-  const loadRepositoriesForInstallation = useCallback(async (installationId: number) => {
-    if (repositories.has(installationId)) return;
+  const refreshData = useCallback(async () => {
+    await loadData(1);
+  }, [loadData]);
 
+  const setPage = useCallback((page: number) => {
+    loadData(page);
+  }, [loadData]);
+
+  const loadRepositoriesForInstallation = useCallback(async (installationId: number, page: number = 1) => {
     try {
-      const repos = await api.getInstallationRepositories(installationId, token, enterpriseUrl);
-      setRepositories(prev => new Map(prev).set(installationId, repos));
+      const result = await api.getInstallationRepositories(installationId, token, enterpriseUrl, page, PER_PAGE);
+      setRepositories(prev => new Map(prev).set(installationId, result.repositories));
     } catch (e) {
       console.error(`Error loading repositories for installation ${installationId}:`, e);
     }
-  }, [token, enterpriseUrl, repositories]);
+  }, [token, enterpriseUrl]);
 
   useEffect(() => {
     if (token) {
-      refreshData();
+      loadData(1);
     }
-  }, [token, enterpriseUrl]);
+  }, [token, enterpriseUrl, filterOrg]);
 
   return {
     organizations,
@@ -85,6 +119,8 @@ export function useDashboardData(token: string, enterpriseUrl?: string): UseDash
     repositories,
     loading,
     error,
+    pagination,
+    setPage,
     refreshData,
     loadRepositoriesForInstallation,
   };

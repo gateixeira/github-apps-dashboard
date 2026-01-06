@@ -1,4 +1,7 @@
 import type { FC } from 'react';
+import { useState } from 'react';
+import type { Organization } from '../types';
+import { api } from '../services/api';
 import './Settings.css';
 
 interface SettingsProps {
@@ -9,6 +12,8 @@ interface SettingsProps {
   onConnect: () => void;
   isConnected: boolean;
   loading: boolean;
+  selectedOrg: string;
+  onSelectedOrgChange: (org: string) => void;
 }
 
 export const Settings: FC<SettingsProps> = ({
@@ -19,7 +24,25 @@ export const Settings: FC<SettingsProps> = ({
   onConnect,
   isConnected,
   loading,
+  selectedOrg,
+  onSelectedOrgChange,
 }) => {
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+
+  const handleRefreshOrgs = async () => {
+    if (!token) return;
+    setLoadingOrgs(true);
+    try {
+      const orgs = await api.getOrganizations(token, enterpriseUrl || undefined);
+      setOrganizations(orgs);
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error);
+    } finally {
+      setLoadingOrgs(false);
+    }
+  };
+
   return (
     <div className="settings-panel">
       <h2>Connection Settings</h2>
@@ -48,6 +71,35 @@ export const Settings: FC<SettingsProps> = ({
           <small>
             Required scopes: <code>read:org</code>, <code>repo</code>
           </small>
+        </div>
+
+        <div className="setting-group">
+          <label htmlFor="filter-org">Filter by Organization</label>
+          <div className="org-filter-row">
+            <select
+              id="filter-org"
+              value={selectedOrg}
+              onChange={(e) => onSelectedOrgChange(e.target.value)}
+              disabled={organizations.length === 0}
+            >
+              <option value="">All Organizations</option>
+              {organizations.map((org) => (
+                <option key={org.login} value={org.login}>
+                  {org.login}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="refresh-btn"
+              onClick={handleRefreshOrgs}
+              disabled={!token || loadingOrgs}
+              title="Refresh organizations"
+            >
+              {loadingOrgs ? '⟳' : '↻'}
+            </button>
+          </div>
+          <small>Click refresh to load available organizations</small>
         </div>
 
         <button 

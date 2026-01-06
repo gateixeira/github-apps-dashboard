@@ -3,6 +3,37 @@ import type { Organization, AppInstallation, GitHubApp, Repository } from '../ty
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  totalCount: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
+
+export interface InstallationsResponse {
+  installations: AppInstallation[];
+  totalCount: number;
+  page: number;
+  perPage: number;
+}
+
+export interface RepositoriesResponse {
+  repositories: Repository[];
+  totalCount?: number;
+  page: number;
+  perPage: number;
+  hasMore?: boolean;
+}
+
+export interface DashboardDataResponse {
+  installations: AppInstallation[];
+  apps: GitHubApp[];
+  totalCount: number;
+  page: number;
+  perPage: number;
+}
+
 const getHeaders = (token: string, enterpriseUrl?: string) => {
   const headers: Record<string, string> = {};
   if (token) {
@@ -22,9 +53,16 @@ export const api = {
     return response.data;
   },
 
-  async getInstallationsForOrg(org: string, token: string, enterpriseUrl?: string): Promise<AppInstallation[]> {
+  async getInstallationsForOrg(
+    org: string,
+    token: string,
+    enterpriseUrl?: string,
+    page: number = 1,
+    perPage: number = 30
+  ): Promise<InstallationsResponse> {
     const response = await axios.get(`${API_BASE}/api/organizations/${org}/installations`, {
       headers: getHeaders(token, enterpriseUrl),
+      params: { page, per_page: perPage },
     });
     return response.data;
   },
@@ -40,26 +78,43 @@ export const api = {
     }
   },
 
-  async getInstallationRepositories(installationId: number, token: string, enterpriseUrl?: string): Promise<Repository[]> {
+  async getInstallationRepositories(
+    installationId: number,
+    token: string,
+    enterpriseUrl?: string,
+    page: number = 1,
+    perPage: number = 30
+  ): Promise<RepositoriesResponse> {
     const response = await axios.get(`${API_BASE}/api/installations/${installationId}/repositories`, {
       headers: getHeaders(token, enterpriseUrl),
+      params: { page, per_page: perPage },
     });
     return response.data;
   },
 
-  async getRepositoriesForOrg(org: string, token: string, enterpriseUrl?: string): Promise<Repository[]> {
+  async getRepositoriesForOrg(
+    org: string,
+    token: string,
+    enterpriseUrl?: string,
+    page: number = 1,
+    perPage: number = 30
+  ): Promise<RepositoriesResponse> {
     const response = await axios.get(`${API_BASE}/api/organizations/${org}/repositories`, {
       headers: getHeaders(token, enterpriseUrl),
+      params: { page, per_page: perPage },
     });
     return response.data;
   },
 
-  async getDashboardData(organizations: Organization[], token: string, enterpriseUrl?: string): Promise<{
-    installations: AppInstallation[];
-    apps: GitHubApp[];
-  }> {
+  async getDashboardData(
+    organizations: Organization[],
+    token: string,
+    enterpriseUrl?: string,
+    page: number = 1,
+    perPage: number = 30
+  ): Promise<DashboardDataResponse> {
     const response = await axios.post(`${API_BASE}/api/dashboard/data`, 
-      { organizations },
+      { organizations, page, perPage },
       { headers: getHeaders(token, enterpriseUrl) }
     );
     return response.data;

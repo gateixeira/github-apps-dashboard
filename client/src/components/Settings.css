@@ -33,14 +33,16 @@
   color: #24292f;
 }
 
-.setting-group input {
+.setting-group input,
+.setting-group select {
   padding: 8px 12px;
   border: 1px solid #d0d7de;
   border-radius: 6px;
   font-size: 14px;
 }
 
-.setting-group input:focus {
+.setting-group input:focus,
+.setting-group select:focus {
   outline: none;
   border-color: #0969da;
   box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
@@ -56,6 +58,36 @@
   padding: 2px 4px;
   border-radius: 3px;
   font-size: 11px;
+}
+
+.org-filter-row {
+  display: flex;
+  gap: 8px;
+}
+
+.org-filter-row select {
+  flex: 1;
+}
+
+.refresh-btn {
+  padding: 8px 12px;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #eaeef2;
+  border-color: #0969da;
+}
+
+.refresh-btn:disabled {
+  color: #8c959f;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .connect-btn {

@@ -40,26 +40,45 @@ export class GitHubService {
   }
 
   async getOrganizationsForUser(): Promise<Organization[]> {
-    const response = await this.octokit.orgs.listForAuthenticatedUser({
-      per_page: 100,
-    });
+    const orgs: Organization[] = [];
+    let page = 1;
     
-    return response.data.map(org => ({
-      login: org.login,
-      id: org.id,
-      avatar_url: org.avatar_url,
-      description: org.description || null,
-    }));
+    while (true) {
+      const response = await this.octokit.orgs.listForAuthenticatedUser({
+        per_page: 100,
+        page,
+      });
+      
+      if (response.data.length === 0) break;
+      
+      orgs.push(...response.data.map(org => ({
+        login: org.login,
+        id: org.id,
+        avatar_url: org.avatar_url,
+        description: org.description || null,
+      })));
+      
+      page++;
+      if (response.data.length < 100) break;
+    }
+    
+    return orgs;
   }
 
-  async getAppInstallationsForOrg(org: string): Promise<AppInstallation[]> {
+  async getAppInstallationsForOrg(org: string, page: number = 1, perPage: number = 30): Promise<{
+    installations: AppInstallation[];
+    totalCount: number;
+    page: number;
+    perPage: number;
+  }> {
     try {
       const response = await this.octokit.orgs.listAppInstallations({
         org,
-        per_page: 100,
+        per_page: perPage,
+        page,
       });
       
-      return response.data.installations.map(inst => {
+      const installations = response.data.installations.map(inst => {
         const account = inst.account as { login?: string; type?: string; avatar_url?: string } | null;
         return {
           id: inst.id,
@@ -80,9 +99,16 @@ export class GitHubService {
           suspended_at: inst.suspended_at || null,
         };
       });
+      
+      return {
+        installations,
+        totalCount: response.data.total_count,
+        page,
+        perPage,
+      };
     } catch (error) {
       console.error(`Error fetching installations for org ${org}:`, error);
-      return [];
+      return { installations: [], totalCount: 0, page: 1, perPage: 30 };
     }
   }
 
@@ -118,7 +144,12 @@ export class GitHubService {
     }
   }
 
-  async getInstallationRepositories(installationId: number, token: string): Promise<Repository[]> {
+  async getInstallationRepositories(installationId: number, token: string, page: number = 1, perPage: number = 30): Promise<{
+    repositories: Repository[];
+    totalCount: number;
+    page: number;
+    perPage: number;
+  }> {
     try {
       const installationOctokit = new Octokit({
         auth: token,
@@ -127,10 +158,11 @@ export class GitHubService {
 
       const response = await installationOctokit.request('GET /user/installations/{installation_id}/repositories', {
         installation_id: installationId,
-        per_page: 100,
+        per_page: perPage,
+        page,
       });
 
-      return response.data.repositories.map((repo: any) => ({
+      const repositories = response.data.repositories.map((repo: any) => ({
         id: repo.id,
         name: repo.name,
         full_name: repo.full_name,
@@ -142,26 +174,33 @@ export class GitHubService {
         description: repo.description || null,
         html_url: repo.html_url,
       }));
+      
+      return {
+        repositories,
+        totalCount: response.data.total_count,
+        page,
+        perPage,
+      };
     } catch (error) {
       console.error(`Error fetching repositories for installation ${installationId}:`, error);
-      return [];
+      return { repositories: [], totalCount: 0, page: 1, perPage: 30 };
     }
   }
 
-  async getRepositoriesForOrg(org: string): Promise<Repository[]> {
-    const repos: Repository[] = [];
-    let page = 1;
-    
-    while (true) {
+  async getRepositoriesForOrg(org: string, page: number = 1, perPage: number = 30): Promise<{
+    repositories: Repository[];
+    page: number;
+    perPage: number;
+    hasMore: boolean;
+  }> {
+    try {
       const response = await this.octokit.repos.listForOrg({
         org,
-        per_page: 100,
+        per_page: perPage,
         page,
       });
       
-      if (response.data.length === 0) break;
-      
-      repos.push(...response.data.map(repo => ({
+      const repositories = response.data.map(repo => ({
         id: repo.id,
         name: repo.name,
         full_name: repo.full_name,
@@ -172,27 +211,37 @@ export class GitHubService {
         },
         description: repo.description || null,
         html_url: repo.html_url,
-      })));
+      }));
       
-      page++;
-      if (response.data.length < 100) break;
+      return {
+        repositories,
+        page,
+        perPage,
+        hasMore: response.data.length === perPage,
+      };
+    } catch (error) {
+      console.error(`Error fetching repositories for org ${org}:`, error);
+      return { repositories: [], page: 1, perPage: 30, hasMore: false };
     }
-    
-    return repos;
   }
 
-  async getAllInstallationsWithDetails(orgs: Organization[]): Promise<{
+  async getAllInstallationsWithDetails(orgs: Organization[], page: number = 1, perPage: number = 30): Promise<{
     installations: AppInstallation[];
     apps: Map<string, GitHubApp>;
+    totalCount: number;
+    page: number;
+    perPage: number;
   }> {
     const allInstallations: AppInstallation[] = [];
     const apps = new Map<string, GitHubApp>();
+    let totalCount = 0;
 
     for (const org of orgs) {
-      const installations = await this.getAppInstallationsForOrg(org.login);
-      allInstallations.push(...installations);
+      const result = await this.getAppInstallationsForOrg(org.login, page, perPage);
+      allInstallations.push(...result.installations);
+      totalCount += result.totalCount;
 
-      for (const inst of installations) {
+      for (const inst of result.installations) {
         if (!apps.has(inst.app_slug)) {
           const app = await this.getApp(inst.app_slug);
           if (app) {
@@ -202,6 +251,6 @@ export class GitHubService {
       }
     }
 
-    return { installations: allInstallations, apps };
+    return { installations: allInstallations, apps, totalCount, page, perPage };
   }
 }

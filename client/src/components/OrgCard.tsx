@@ -33,8 +33,8 @@ export const OrgCard: FC<OrgCardProps> = ({
   const loadRepositories = async () => {
     setLoadingRepos(true);
     try {
-      const repos = await api.getRepositoriesForOrg(organization.login, token, enterpriseUrl);
-      setRepositories(repos);
+      const result = await api.getRepositoriesForOrg(organization.login, token, enterpriseUrl);
+      setRepositories(result.repositories);
     } catch (error) {
       console.error('Failed to load repositories:', error);
     } finally {

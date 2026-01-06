@@ -21,8 +21,8 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
 
     setLoadingRepos(prev => new Set(prev).add(installationId));
     try {
-      const repos = await api.getInstallationRepositories(installationId, token, enterpriseUrl);
-      setRepositories(prev => new Map(prev).set(installationId, repos));
+      const result = await api.getInstallationRepositories(installationId, token, enterpriseUrl);
+      setRepositories(prev => new Map(prev).set(installationId, result.repositories));
     } catch (error) {
       console.error('Failed to load repositories:', error);
     } finally {

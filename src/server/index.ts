@@ -17,6 +17,12 @@ const getGitHubService = (req: Request): GitHubService => {
   return new GitHubService(token, baseUrl);
 };
 
+const getPaginationParams = (req: Request): { page: number; perPage: number } => {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const perPage = Math.min(100, Math.max(1, parseInt(req.query.per_page as string) || 30));
+  return { page, perPage };
+};
+
 // Get all organizations
 app.get('/api/organizations', async (req: Request, res: Response) => {
   try {
@@ -34,8 +40,9 @@ app.get('/api/organizations/:org/installations', async (req: Request, res: Respo
   try {
     const githubService = getGitHubService(req);
     const { org } = req.params;
-    const installations = await githubService.getAppInstallationsForOrg(org);
-    res.json(installations);
+    const { page, perPage } = getPaginationParams(req);
+    const result = await githubService.getAppInstallationsForOrg(org, page, perPage);
+    res.json(result);
   } catch (error) {
     console.error('Error fetching installations:', error);
     res.status(500).json({ error: 'Failed to fetch installations' });
@@ -65,8 +72,9 @@ app.get('/api/installations/:installationId/repositories', async (req: Request, 
     const githubService = getGitHubService(req);
     const token = req.headers.authorization?.replace('Bearer ', '') || process.env.GITHUB_TOKEN || '';
     const { installationId } = req.params;
-    const repos = await githubService.getInstallationRepositories(parseInt(installationId), token);
-    res.json(repos);
+    const { page, perPage } = getPaginationParams(req);
+    const result = await githubService.getInstallationRepositories(parseInt(installationId), token, page, perPage);
+    res.json(result);
   } catch (error) {
     console.error('Error fetching repositories:', error);
     res.status(500).json({ error: 'Failed to fetch repositories' });
@@ -78,8 +86,9 @@ app.get('/api/organizations/:org/repositories', async (req: Request, res: Respon
   try {
     const githubService = getGitHubService(req);
     const { org } = req.params;
-    const repos = await githubService.getRepositoriesForOrg(org);
-    res.json(repos);
+    const { page, perPage } = getPaginationParams(req);
+    const result = await githubService.getRepositoriesForOrg(org, page, perPage);
+    res.json(result);
   } catch (error) {
     console.error('Error fetching repositories:', error);
     res.status(500).json({ error: 'Failed to fetch repositories' });
@@ -90,16 +99,23 @@ app.get('/api/organizations/:org/repositories', async (req: Request, res: Respon
 app.post('/api/dashboard/data', async (req: Request, res: Response) => {
   try {
     const githubService = getGitHubService(req);
-    const { organizations } = req.body;
+    const { organizations, page, perPage } = req.body;
     
     if (!organizations || !Array.isArray(organizations)) {
       return res.status(400).json({ error: 'Organizations array required' });
     }
 
-    const result = await githubService.getAllInstallationsWithDetails(organizations);
+    const result = await githubService.getAllInstallationsWithDetails(
+      organizations,
+      page || 1,
+      perPage || 30
+    );
     res.json({
       installations: result.installations,
       apps: Array.from(result.apps.values()),
+      totalCount: result.totalCount,
+      page: result.page,
+      perPage: result.perPage,
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
