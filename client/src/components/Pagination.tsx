@@ -1,5 +1,6 @@
 import type { FC } from 'react';
-import './Pagination.css';
+import { Button, ButtonGroup } from '@primer/react';
+import { ChevronLeftIcon, ChevronRightIcon } from '@primer/octicons-react';
 
 interface PaginationProps {
   currentPage: number;
@@ -56,44 +57,47 @@ export const Pagination: FC<PaginationProps> = ({
   }
 
   return (
-    <div className="pagination">
-      <span className="pagination-info">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <span style={{ fontSize: 12, color: '#6e7781' }}>
         Showing {startItem}-{endItem} of {totalCount}
       </span>
       
-      <div className="pagination-controls">
-        <button
-          className="pagination-btn"
+      <ButtonGroup>
+        <Button
+          size="small"
+          leadingVisual={ChevronLeftIcon}
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
         >
-          ← Previous
-        </button>
+          Previous
+        </Button>
         
-        <div className="pagination-pages">
-          {getPageNumbers().map((page, index) => (
-            typeof page === 'number' ? (
-              <button
-                key={index}
-                className={`pagination-page ${page === currentPage ? 'active' : ''}`}
-                onClick={() => onPageChange(page)}
-              >
-                {page}
-              </button>
-            ) : (
-              <span key={index} className="pagination-ellipsis">{page}</span>
-            )
-          ))}
-        </div>
+        {getPageNumbers().map((page, index) => (
+          typeof page === 'number' ? (
+            <Button
+              key={index}
+              size="small"
+              variant={page === currentPage ? 'primary' : 'default'}
+              onClick={() => onPageChange(page)}
+            >
+              {page}
+            </Button>
+          ) : (
+            <Button key={index} size="small" disabled variant="invisible">
+              {page}
+            </Button>
+          )
+        ))}
         
-        <button
-          className="pagination-btn"
+        <Button
+          size="small"
+          trailingVisual={ChevronRightIcon}
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
         >
-          Next →
-        </button>
-      </div>
+          Next
+        </Button>
+      </ButtonGroup>
     </div>
   );
 };

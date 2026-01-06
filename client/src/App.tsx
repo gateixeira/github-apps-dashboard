@@ -1,4 +1,11 @@
 import { useState, useMemo } from 'react';
+import {
+  Spinner,
+  Banner,
+  Button,
+  Header,
+} from '@primer/react';
+import { MarkGithubIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
 import { FilterBar } from './components/FilterBar';
 import { AppCard } from './components/AppCard';
@@ -6,7 +13,16 @@ import { OrgCard } from './components/OrgCard';
 import { Pagination } from './components/Pagination';
 import { useDashboardData } from './hooks/useDashboardData';
 import type { FilterState, Repository } from './types';
-import './App.css';
+
+const styles = {
+  container: { minHeight: '100vh', display: 'flex', flexDirection: 'column' as const },
+  main: { flex: 1 },
+  content: { maxWidth: 1400, margin: '0 auto', padding: '32px 24px' },
+  welcomeBox: { textAlign: 'center' as const, padding: '48px 32px', background: '#fff', border: '1px solid #d0d7de', borderRadius: 6 },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' as const, gap: 8 },
+  emptyState: { textAlign: 'center' as const, padding: 32, color: '#6e7781' },
+  footer: { background: '#f6f8fa', borderTop: '1px solid #d0d7de', padding: 16, textAlign: 'center' as const },
+};
 
 function App() {
   const [token, setToken] = useState('');
@@ -41,7 +57,6 @@ function App() {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
-  // Extract unique app owners
   const appOwners = useMemo(() => {
     const owners = new Set<string>();
     apps.forEach(app => {
@@ -52,17 +67,14 @@ function App() {
     return Array.from(owners).sort();
   }, [apps]);
 
-  // Extract unique app slugs
   const appSlugs = useMemo(() => {
     return Array.from(apps.keys()).sort();
   }, [apps]);
 
-  // Extract unique repository names from all repositories
   const repositoryNames = useMemo(() => {
     return allRepositories.map(r => r.full_name).sort();
   }, [allRepositories]);
 
-  // Filter installations based on current filters
   const filteredInstallations = useMemo(() => {
     return installations.filter(inst => {
       if (filters.organization && inst.account.login !== filters.organization) {
@@ -81,7 +93,6 @@ function App() {
     });
   }, [installations, filters, apps]);
 
-  // Group installations by app for Apps view
   const installationsByApp = useMemo(() => {
     const grouped = new Map<string, typeof installations>();
     filteredInstallations.forEach(inst => {
@@ -91,7 +102,6 @@ function App() {
     return grouped;
   }, [filteredInstallations]);
 
-  // Group installations by organization for Organizations view
   const installationsByOrg = useMemo(() => {
     const grouped = new Map<string, typeof installations>();
     filteredInstallations.forEach(inst => {
@@ -101,7 +111,6 @@ function App() {
     return grouped;
   }, [filteredInstallations]);
 
-  // Filter organizations based on selected org filter
   const filteredOrganizations = useMemo(() => {
     if (filters.organization) {
       return organizations.filter(org => org.login === filters.organization);
@@ -112,37 +121,36 @@ function App() {
   const renderContent = () => {
     if (!isConnected) {
       return (
-        <div className="empty-state">
-          <h3>Welcome to GitHub Apps Dashboard</h3>
-          <p>Connect to your GitHub Enterprise to view installed apps across organizations.</p>
+        <div style={styles.welcomeBox}>
+          <h3 style={{ marginBottom: 8 }}>Welcome to GitHub Apps Dashboard</h3>
+          <span style={{ color: '#6e7781' }}>Connect to your GitHub Enterprise to view installed apps across organizations.</span>
         </div>
       );
     }
 
     if (loading) {
       return (
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading data from GitHub...</p>
+        <div style={styles.welcomeBox}>
+          <Spinner size="large" />
+          <div style={{ marginTop: 16, color: '#6e7781' }}>Loading data from GitHub...</div>
         </div>
       );
     }
 
     if (error) {
       return (
-        <div className="error-state">
-          <h3>Error</h3>
+        <Banner variant="critical" title="Error">
           <p>{error}</p>
-          <button onClick={refreshData}>Retry</button>
-        </div>
+          <Button onClick={refreshData}>Retry</Button>
+        </Banner>
       );
     }
 
     if (filters.viewMode === 'apps') {
       return (
-        <div className="apps-view">
-          <div className="view-header">
-            <h2>Apps ({pagination.totalCount})</h2>
+        <div>
+          <div style={styles.header}>
+            <h2 style={{ fontSize: 20, margin: 0 }}>Apps ({pagination.totalCount})</h2>
             <Pagination
               currentPage={pagination.page}
               totalPages={pagination.totalPages}
@@ -165,8 +173,8 @@ function App() {
             );
           })}
           {installationsByApp.size === 0 && (
-            <div className="empty-state">
-              <p>No apps found matching your filters.</p>
+            <div style={styles.emptyState}>
+              No apps found matching your filters.
             </div>
           )}
         </div>
@@ -175,8 +183,8 @@ function App() {
 
     if (filters.viewMode === 'organizations') {
       return (
-        <div className="orgs-view">
-          <h2>Organizations ({filteredOrganizations.length})</h2>
+        <div>
+          <h2 style={{ fontSize: 20, marginBottom: 16 }}>Organizations ({filteredOrganizations.length})</h2>
           {filteredOrganizations.map(org => (
             <OrgCard
               key={org.login}
@@ -188,8 +196,8 @@ function App() {
             />
           ))}
           {filteredOrganizations.length === 0 && (
-            <div className="empty-state">
-              <p>No organizations found matching your filters.</p>
+            <div style={styles.emptyState}>
+              No organizations found matching your filters.
             </div>
           )}
         </div>
@@ -198,11 +206,11 @@ function App() {
 
     if (filters.viewMode === 'repositories') {
       return (
-        <div className="repos-view">
-          <h2>Repositories</h2>
-          <p className="view-note">
+        <div>
+          <h2 style={{ fontSize: 20, marginBottom: 8 }}>Repositories</h2>
+          <div style={{ color: '#6e7781', marginBottom: 16 }}>
             Select an organization to view its repositories and the apps installed on them.
-          </p>
+          </div>
           {filters.organization ? (
             filteredOrganizations.map(org => (
               <OrgCard
@@ -215,8 +223,8 @@ function App() {
               />
             ))
           ) : (
-            <div className="empty-state">
-              <p>Please select an organization to view repositories.</p>
+            <div style={styles.emptyState}>
+              Please select an organization to view repositories.
             </div>
           )}
         </div>
@@ -227,41 +235,54 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>🔧 GitHub Apps Dashboard</h1>
-        <p>View and manage GitHub Apps across your enterprise organizations</p>
-      </header>
+    <div style={styles.container}>
+      <Header>
+        <Header.Item>
+          <Header.Link href="#" style={{ fontSize: 16, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MarkGithubIcon size={32} />
+            GitHub Apps Dashboard
+          </Header.Link>
+        </Header.Item>
+        <Header.Item full>
+          <span style={{ color: 'rgba(255,255,255,0.7)', marginLeft: 8 }}>
+            View and manage GitHub Apps across your enterprise organizations
+          </span>
+        </Header.Item>
+      </Header>
 
-      <main className="app-main">
-        <Settings
-          token={token}
-          enterpriseUrl={enterpriseUrl}
-          onTokenChange={setToken}
-          onEnterpriseUrlChange={setEnterpriseUrl}
-          onConnect={handleConnect}
-          isConnected={isConnected}
-          loading={loading}
-          selectedOrg={selectedOrg}
-          onSelectedOrgChange={setSelectedOrg}
-        />
-
-        {isConnected && !loading && (
-          <FilterBar
-            organizations={organizations}
-            appOwners={appOwners}
-            appSlugs={appSlugs}
-            repositories={repositoryNames}
-            filters={filters}
-            onFilterChange={handleFilterChange}
+      <div style={styles.main}>
+        <div style={styles.content}>
+          <Settings
+            token={token}
+            enterpriseUrl={enterpriseUrl}
+            onTokenChange={setToken}
+            onEnterpriseUrlChange={setEnterpriseUrl}
+            onConnect={handleConnect}
+            isConnected={isConnected}
+            loading={loading}
+            selectedOrg={selectedOrg}
+            onSelectedOrgChange={setSelectedOrg}
           />
-        )}
 
-        {renderContent()}
-      </main>
+          {isConnected && !loading && (
+            <FilterBar
+              organizations={organizations}
+              appOwners={appOwners}
+              appSlugs={appSlugs}
+              repositories={repositoryNames}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+            />
+          )}
 
-      <footer className="app-footer">
-        <p>GitHub Apps Dashboard - View installations across your GitHub Enterprise</p>
+          {renderContent()}
+        </div>
+      </div>
+
+      <footer style={styles.footer}>
+        <span style={{ color: '#6e7781', fontSize: 12 }}>
+          GitHub Apps Dashboard - View installations across your GitHub Enterprise
+        </span>
       </footer>
     </div>
   );

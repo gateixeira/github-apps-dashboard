@@ -1,10 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
+import { ThemeProvider, BaseStyles } from '@primer/react'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ThemeProvider>
+      <BaseStyles>
+        <App />
+      </BaseStyles>
+    </ThemeProvider>
   </StrictMode>,
 )

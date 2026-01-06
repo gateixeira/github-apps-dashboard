@@ -1,12 +1,34 @@
 import type { FC } from 'react';
+import {
+  Avatar,
+  Label,
+  Link,
+  CounterLabel,
+} from '@primer/react';
 import type { Repository, AppInstallation, GitHubApp } from '../types';
-import './RepoCard.css';
 
 interface RepoCardProps {
   repository: Repository;
   installations: AppInstallation[];
   apps: Map<string, GitHubApp>;
 }
+
+const cardStyle = {
+  border: '1px solid #d0d7de',
+  borderRadius: 6,
+  marginBottom: 8,
+  background: '#fff',
+  overflow: 'hidden' as const,
+};
+
+const headerStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: 16,
+  background: '#f6f8fa',
+  borderBottom: '1px solid #d0d7de',
+};
 
 export const RepoCard: FC<RepoCardProps> = ({ 
   repository, 
@@ -18,50 +40,61 @@ export const RepoCard: FC<RepoCardProps> = ({
   };
 
   return (
-    <div className="repo-card">
-      <div className="repo-card-header">
-        <div className="repo-info">
-          <img src={repository.owner.avatar_url} alt={repository.owner.login} className="repo-owner-avatar" />
-          <div className="repo-details">
-            <h3 className="repo-name">
-              <a href={repository.html_url} target="_blank" rel="noopener noreferrer">
+    <div style={cardStyle}>
+      <div style={headerStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Avatar src={repository.owner.avatar_url} size={40} alt={repository.owner.login} />
+          <div>
+            <h3 style={{ fontSize: 16, margin: 0 }}>
+              <Link href={repository.html_url} target="_blank">
                 {repository.full_name}
-              </a>
+              </Link>
             </h3>
             {repository.description && (
-              <span className="repo-description">{repository.description}</span>
+              <span style={{ fontSize: 14, color: '#6e7781' }}>{repository.description}</span>
             )}
           </div>
         </div>
-        <div className="repo-badges">
-          {repository.private && <span className="private-badge">Private</span>}
-          <span className="apps-count">{installations.length} app(s)</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {repository.private && <Label variant="danger">Private</Label>}
+          <CounterLabel>{installations.length} app(s)</CounterLabel>
         </div>
       </div>
 
       {installations.length > 0 && (
-        <div className="repo-card-body">
-          <h4>Apps with access to this repository</h4>
-          <div className="repo-apps-grid">
+        <div style={{ padding: 16 }}>
+          <h4 style={{ fontSize: 12, marginBottom: 8 }}>Apps with access to this repository</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
             {installations.map(inst => {
               const app = getAppForInstallation(inst);
               return (
-                <div key={inst.id} className="repo-app-item">
+                <div
+                  key={inst.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: 12,
+                    background: '#f6f8fa',
+                    border: '1px solid #d0d7de',
+                    borderRadius: 6,
+                  }}
+                >
                   {app?.owner && (
-                    <img src={app.owner.avatar_url} alt={app.name} className="repo-app-avatar" />
+                    <Avatar src={app.owner.avatar_url} size={32} square alt={app.name} />
                   )}
-                  <div className="repo-app-details">
-                    <span className="repo-app-name">{app?.name || inst.app_slug}</span>
-                    <span className="repo-app-slug">@{inst.app_slug}</span>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontWeight: 'bold', display: 'block' }}>{app?.name || inst.app_slug}</span>
+                    <span style={{ fontSize: 12, color: '#6e7781' }}>@{inst.app_slug}</span>
                     {app?.owner && (
-                      <span className="repo-app-owner">by {app.owner.login}</span>
+                      <span style={{ fontSize: 12, color: '#6e7781', display: 'block' }}>by {app.owner.login}</span>
                     )}
                   </div>
-                  <div className="repo-app-access">
-                    <span className={`access-type ${inst.repository_selection}`}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                    <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'} size="small">
                       {inst.repository_selection === 'all' ? 'All repos' : 'Selected'}
-                    </span>
-                    {inst.suspended_at && <span className="suspended-badge">Suspended</span>}
+                    </Label>
+                    {inst.suspended_at && <Label variant="danger" size="small">Suspended</Label>}
                   </div>
                 </div>
               );

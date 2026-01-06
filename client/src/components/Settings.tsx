@@ -1,8 +1,16 @@
 import type { FC } from 'react';
 import { useState } from 'react';
+import {
+  FormControl,
+  TextInput,
+  Select,
+  Button,
+  IconButton,
+  Flash,
+} from '@primer/react';
+import { SyncIcon } from '@primer/octicons-react';
 import type { Organization } from '../types';
 import { api } from '../services/api';
-import './Settings.css';
 
 interface SettingsProps {
   token: string;
@@ -44,76 +52,70 @@ export const Settings: FC<SettingsProps> = ({
   };
 
   return (
-    <div className="settings-panel">
-      <h2>Connection Settings</h2>
-      <div className="settings-form">
-        <div className="setting-group">
-          <label htmlFor="enterprise-url">GitHub Enterprise URL (optional)</label>
-          <input
-            id="enterprise-url"
-            type="text"
+    <div style={{ padding: 16, background: '#f6f8fa', borderRadius: 6, border: '1px solid #d0d7de', marginBottom: 16 }}>
+      <h2 style={{ fontSize: 20, marginTop: 0, marginBottom: 16 }}>Connection Settings</h2>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', marginTop: 16 }}>
+        <FormControl>
+          <FormControl.Label>GitHub Enterprise URL (optional)</FormControl.Label>
+          <TextInput
             value={enterpriseUrl}
             onChange={(e) => onEnterpriseUrlChange(e.target.value)}
             placeholder="https://github.example.com/api/v3"
           />
-          <small>Leave empty for github.com</small>
-        </div>
+          <FormControl.Caption>Leave empty for github.com</FormControl.Caption>
+        </FormControl>
 
-        <div className="setting-group">
-          <label htmlFor="token">Personal Access Token</label>
-          <input
-            id="token"
+        <FormControl>
+          <FormControl.Label>Personal Access Token</FormControl.Label>
+          <TextInput
             type="password"
             value={token}
             onChange={(e) => onTokenChange(e.target.value)}
             placeholder="ghp_xxxxxxxxxxxx"
           />
-          <small>
+          <FormControl.Caption>
             Required scopes: <code>read:org</code>, <code>repo</code>
-          </small>
-        </div>
+          </FormControl.Caption>
+        </FormControl>
 
-        <div className="setting-group">
-          <label htmlFor="filter-org">Filter by Organization</label>
-          <div className="org-filter-row">
-            <select
-              id="filter-org"
+        <FormControl>
+          <FormControl.Label>Filter by Organization</FormControl.Label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Select
               value={selectedOrg}
               onChange={(e) => onSelectedOrgChange(e.target.value)}
               disabled={organizations.length === 0}
             >
-              <option value="">All Organizations</option>
+              <Select.Option value="">All Organizations</Select.Option>
               {organizations.map((org) => (
-                <option key={org.login} value={org.login}>
+                <Select.Option key={org.login} value={org.login}>
                   {org.login}
-                </option>
+                </Select.Option>
               ))}
-            </select>
-            <button
-              type="button"
-              className="refresh-btn"
+            </Select>
+            <IconButton
+              icon={SyncIcon}
+              aria-label="Refresh organizations"
               onClick={handleRefreshOrgs}
               disabled={!token || loadingOrgs}
-              title="Refresh organizations"
-            >
-              {loadingOrgs ? '⟳' : '↻'}
-            </button>
+            />
           </div>
-          <small>Click refresh to load available organizations</small>
-        </div>
+          <FormControl.Caption>Click refresh to load available organizations</FormControl.Caption>
+        </FormControl>
 
-        <button 
-          className="connect-btn" 
-          onClick={onConnect} 
+        <Button
+          variant="primary"
+          onClick={onConnect}
           disabled={!token || loading}
         >
           {loading ? 'Connecting...' : isConnected ? 'Reconnect' : 'Connect'}
-        </button>
+        </Button>
 
         {isConnected && (
-          <div className="connection-status connected">
+          <Flash variant="success">
             ✓ Connected to GitHub
-          </div>
+          </Flash>
         )}
       </div>
     </div>

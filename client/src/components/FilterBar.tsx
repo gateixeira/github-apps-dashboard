@@ -1,6 +1,6 @@
 import type { FC } from 'react';
+import { FormControl, Select } from '@primer/react';
 import type { Organization, FilterState, ViewMode } from '../types';
-import './FilterBar.css';
 
 interface FilterBarProps {
   organizations: Organization[];
@@ -10,6 +10,17 @@ interface FilterBarProps {
   filters: FilterState;
   onFilterChange: (filters: Partial<FilterState>) => void;
 }
+
+const containerStyle = {
+  display: 'flex',
+  flexWrap: 'wrap' as const,
+  gap: 16,
+  padding: 16,
+  background: '#f6f8fa',
+  borderRadius: 6,
+  border: '1px solid #d0d7de',
+  marginBottom: 16,
+};
 
 export const FilterBar: FC<FilterBarProps> = ({
   organizations,
@@ -26,86 +37,81 @@ export const FilterBar: FC<FilterBarProps> = ({
   ];
 
   return (
-    <div className="filter-bar">
-      <div className="filter-group">
-        <label htmlFor="view-mode">View Mode</label>
-        <select
-          id="view-mode"
+    <div style={containerStyle}>
+      <FormControl>
+        <FormControl.Label>View Mode</FormControl.Label>
+        <Select
           value={filters.viewMode}
           onChange={(e) => onFilterChange({ viewMode: e.target.value as ViewMode })}
         >
           {viewModes.map((mode) => (
-            <option key={mode.value} value={mode.value}>
+            <Select.Option key={mode.value} value={mode.value}>
               {mode.label}
-            </option>
+            </Select.Option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </FormControl>
 
-      <div className="filter-group">
-        <label htmlFor="organization">Organization</label>
-        <select
-          id="organization"
+      <FormControl>
+        <FormControl.Label>Organization</FormControl.Label>
+        <Select
           value={filters.organization}
           onChange={(e) => onFilterChange({ organization: e.target.value })}
         >
-          <option value="">All Organizations</option>
+          <Select.Option value="">All Organizations</Select.Option>
           {organizations.map((org) => (
-            <option key={org.login} value={org.login}>
+            <Select.Option key={org.login} value={org.login}>
               {org.login}
-            </option>
+            </Select.Option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </FormControl>
 
-      <div className="filter-group">
-        <label htmlFor="app-owner">App Owner</label>
-        <select
-          id="app-owner"
+      <FormControl>
+        <FormControl.Label>App Owner</FormControl.Label>
+        <Select
           value={filters.appOwner}
           onChange={(e) => onFilterChange({ appOwner: e.target.value })}
         >
-          <option value="">All Owners</option>
+          <Select.Option value="">All Owners</Select.Option>
           {appOwners.map((owner) => (
-            <option key={owner} value={owner}>
+            <Select.Option key={owner} value={owner}>
               {owner}
-            </option>
+            </Select.Option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </FormControl>
 
-      <div className="filter-group">
-        <label htmlFor="app-slug">App</label>
-        <select
-          id="app-slug"
+      <FormControl>
+        <FormControl.Label>App</FormControl.Label>
+        <Select
           value={filters.appSlug}
           onChange={(e) => onFilterChange({ appSlug: e.target.value })}
         >
-          <option value="">All Apps</option>
+          <Select.Option value="">All Apps</Select.Option>
           {appSlugs.map((slug) => (
-            <option key={slug} value={slug}>
+            <Select.Option key={slug} value={slug}>
               {slug}
-            </option>
+            </Select.Option>
           ))}
-        </select>
-      </div>
+        </Select>
+      </FormControl>
 
       {filters.viewMode === 'repositories' && (
-        <div className="filter-group">
-          <label htmlFor="repository">Repository</label>
-          <select
-            id="repository"
+        <FormControl>
+          <FormControl.Label>Repository</FormControl.Label>
+          <Select
             value={filters.repository}
             onChange={(e) => onFilterChange({ repository: e.target.value })}
           >
-            <option value="">All Repositories</option>
+            <Select.Option value="">All Repositories</Select.Option>
             {repositories.map((repo) => (
-              <option key={repo} value={repo}>
+              <Select.Option key={repo} value={repo}>
                 {repo}
-              </option>
+              </Select.Option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </FormControl>
       )}
     </div>
   );

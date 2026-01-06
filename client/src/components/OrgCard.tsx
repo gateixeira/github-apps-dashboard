@@ -1,8 +1,16 @@
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
+import {
+  Avatar,
+  Label,
+  CounterLabel,
+  Spinner,
+  Select,
+  FormControl,
+} from '@primer/react';
+import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
 import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
 import { api } from '../services/api';
-import './OrgCard.css';
 
 interface OrgCardProps {
   organization: Organization;
@@ -11,6 +19,23 @@ interface OrgCardProps {
   token: string;
   enterpriseUrl?: string;
 }
+
+const cardStyle = {
+  border: '1px solid #d0d7de',
+  borderRadius: 6,
+  marginBottom: 8,
+  background: '#fff',
+  overflow: 'hidden' as const,
+};
+
+const headerStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: 16,
+  background: '#f6f8fa',
+  cursor: 'pointer',
+};
 
 export const OrgCard: FC<OrgCardProps> = ({ 
   organization, 
@@ -47,51 +72,61 @@ export const OrgCard: FC<OrgCardProps> = ({
   };
 
   return (
-    <div className="org-card">
-      <div className="org-card-header" onClick={() => setExpanded(!expanded)}>
-        <div className="org-info">
-          <img src={organization.avatar_url} alt={organization.login} className="org-avatar" />
-          <div className="org-details">
-            <h3 className="org-name">{organization.login}</h3>
+    <div style={cardStyle}>
+      <div style={headerStyle} onClick={() => setExpanded(!expanded)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Avatar src={organization.avatar_url} size={48} square alt={organization.login} />
+          <div>
+            <h3 style={{ fontSize: 16, margin: 0 }}>{organization.login}</h3>
             {organization.description && (
-              <span className="org-description">{organization.description}</span>
+              <span style={{ fontSize: 14, color: '#6e7781' }}>{organization.description}</span>
             )}
           </div>
         </div>
-        <div className="org-stats">
-          <span className="installation-count">{installations.length} app(s) installed</span>
-          <span className={`expand-icon ${expanded ? 'expanded' : ''}`}>▼</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CounterLabel>{installations.length} app(s) installed</CounterLabel>
+          {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </div>
       </div>
 
       {expanded && (
-        <div className="org-card-body">
-          <div className="org-apps-section">
-            <h4>Installed Apps</h4>
+        <div style={{ padding: 16 }}>
+          <div style={{ marginBottom: 16 }}>
+            <h4 style={{ fontSize: 12, marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #d0d7de' }}>
+              Installed Apps
+            </h4>
             {installations.length === 0 ? (
-              <p className="no-apps">No apps installed in this organization</p>
+              <span style={{ color: '#6e7781', fontStyle: 'italic' }}>No apps installed in this organization</span>
             ) : (
-              <div className="apps-grid">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
                 {installations.map(inst => {
                   const app = getAppForInstallation(inst);
                   return (
-                    <div key={inst.id} className="org-app-item">
-                      <div className="org-app-header">
+                    <div
+                      key={inst.id}
+                      style={{
+                        padding: 12,
+                        background: '#f6f8fa',
+                        border: '1px solid #d0d7de',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                         {app?.owner && (
-                          <img src={app.owner.avatar_url} alt={app.name} className="org-app-avatar" />
+                          <Avatar src={app.owner.avatar_url} size={32} square alt={app.name} />
                         )}
-                        <div className="org-app-info">
-                          <span className="org-app-name">{app?.name || inst.app_slug}</span>
-                          <span className="org-app-slug">@{inst.app_slug}</span>
+                        <div>
+                          <span style={{ fontWeight: 'bold' }}>{app?.name || inst.app_slug}</span>
+                          <span style={{ fontSize: 12, color: '#6e7781', display: 'block' }}>@{inst.app_slug}</span>
                         </div>
-                        {inst.suspended_at && <span className="suspended-badge">Suspended</span>}
+                        {inst.suspended_at && <Label variant="danger">Suspended</Label>}
                       </div>
-                      <div className="org-app-meta">
-                        <span className={`repo-selection ${inst.repository_selection}`}>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
                           {inst.repository_selection === 'all' ? 'All repos' : 'Selected repos'}
-                        </span>
+                        </Label>
                         {app?.owner && (
-                          <span className="app-owner-info">by {app.owner.login}</span>
+                          <span style={{ fontSize: 12, color: '#6e7781' }}>by {app.owner.login}</span>
                         )}
                       </div>
                     </div>
@@ -101,44 +136,54 @@ export const OrgCard: FC<OrgCardProps> = ({
             )}
           </div>
 
-          <div className="org-repos-section">
-            <h4>Repositories</h4>
+          <div>
+            <h4 style={{ fontSize: 12, marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #d0d7de' }}>
+              Repositories
+            </h4>
             {loadingRepos ? (
-              <p className="loading">Loading repositories...</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Spinner size="small" />
+                <span style={{ color: '#6e7781' }}>Loading repositories...</span>
+              </div>
             ) : (
               <>
-                <select 
-                  value={selectedRepo} 
-                  onChange={(e) => setSelectedRepo(e.target.value)}
-                  className="repo-selector"
-                >
-                  <option value="">Select a repository to see installed apps</option>
-                  {repositories.map(repo => (
-                    <option key={repo.id} value={repo.full_name}>{repo.name}</option>
-                  ))}
-                </select>
+                <div style={{ marginBottom: 8 }}>
+                  <FormControl>
+                    <Select 
+                      value={selectedRepo} 
+                      onChange={(e) => setSelectedRepo(e.target.value)}
+                    >
+                      <Select.Option value="">Select a repository to see installed apps</Select.Option>
+                      {repositories.map(repo => (
+                        <Select.Option key={repo.id} value={repo.full_name}>{repo.name}</Select.Option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </div>
 
                 {selectedRepo && (
-                  <div className="repo-apps">
-                    <p className="repo-apps-info">
+                  <div style={{ padding: 12, background: '#f6f8fa', border: '1px solid #d0d7de', borderRadius: 6 }}>
+                    <div style={{ marginBottom: 8 }}>
                       Apps with access to <strong>{selectedRepo}</strong>:
-                    </p>
-                    <ul className="repo-apps-list">
+                    </div>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                       {installations
                         .filter(inst => inst.repository_selection === 'all')
                         .map(inst => {
                           const app = getAppForInstallation(inst);
                           return (
-                            <li key={inst.id}>
-                              {app?.name || inst.app_slug}
-                              <span className="all-repos-badge">All repos</span>
+                            <li key={inst.id} style={{ padding: '4px 0', borderBottom: '1px solid #eaeef2', display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span>{app?.name || inst.app_slug}</span>
+                              <Label variant="accent" size="small">All repos</Label>
                             </li>
                           );
                         })}
                     </ul>
-                    <p className="repo-apps-note">
-                      Note: Apps with "Selected repos" access require individual repository checks.
-                    </p>
+                    <div style={{ marginTop: 8 }}>
+                      <span style={{ fontSize: 12, color: '#6e7781', fontStyle: 'italic' }}>
+                        Note: Apps with "Selected repos" access require individual repository checks.
+                      </span>
+                    </div>
                   </div>
                 )}
               </>
