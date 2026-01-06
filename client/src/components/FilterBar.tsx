@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import styled from 'styled-components';
 import { FormControl, Select } from '@primer/react';
 import type { Organization, FilterState, ViewMode } from '../types';
 
@@ -11,16 +12,16 @@ interface FilterBarProps {
   onFilterChange: (filters: Partial<FilterState>) => void;
 }
 
-const containerStyle = {
-  display: 'flex',
-  flexWrap: 'wrap' as const,
-  gap: 16,
-  padding: 16,
-  background: '#f6f8fa',
-  borderRadius: 6,
-  border: '1px solid #d0d7de',
-  marginBottom: 16,
-};
+const FilterContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bgColor-default, #fff);
+  border-radius: 6px;
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  margin-bottom: 16px;
+`;
 
 export const FilterBar: FC<FilterBarProps> = ({
   organizations,
@@ -37,7 +38,7 @@ export const FilterBar: FC<FilterBarProps> = ({
   ];
 
   return (
-    <div style={containerStyle}>
+    <FilterContainer>
       <FormControl>
         <FormControl.Label>View Mode</FormControl.Label>
         <Select
@@ -113,6 +114,6 @@ export const FilterBar: FC<FilterBarProps> = ({
           </Select>
         </FormControl>
       )}
-    </div>
+    </FilterContainer>
   );
 };

@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import {
   Avatar,
   Label,
@@ -7,6 +8,8 @@ import {
   Spinner,
   Select,
   FormControl,
+  Text,
+  Heading,
 } from '@primer/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
 import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
@@ -20,22 +23,88 @@ interface OrgCardProps {
   enterpriseUrl?: string;
 }
 
-const cardStyle = {
-  border: '1px solid #d0d7de',
-  borderRadius: 6,
-  marginBottom: 8,
-  background: '#fff',
-  overflow: 'hidden' as const,
-};
+const Card = styled.div`
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: var(--bgColor-default, #fff);
+  overflow: hidden;
+`;
 
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: 16,
-  background: '#f6f8fa',
-  cursor: 'pointer',
-};
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--bgColor-muted, #f6f8fa);
+  cursor: pointer;
+`;
+
+const CardHeaderInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CardHeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CardContent = styled.div`
+  padding: 16px;
+`;
+
+const Section = styled.div`
+  margin-bottom: 16px;
+`;
+
+const SectionHeader = styled.h4`
+  font-size: 12px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--borderColor-default, #d0d7de);
+`;
+
+const AppsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+`;
+
+const AppBox = styled.div`
+  padding: 12px;
+  background: var(--bgColor-muted, #f6f8fa);
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+`;
+
+const AppBoxHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const AppBoxLabels = styled.div`
+  display: flex;
+  gap: 4px;
+  align-items: center;
+`;
+
+const RepoBox = styled.div`
+  padding: 12px;
+  background: var(--bgColor-muted, #f6f8fa);
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+`;
+
+const LoadingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
 
 export const OrgCard: FC<OrgCardProps> = ({ 
   organization, 
@@ -72,79 +141,67 @@ export const OrgCard: FC<OrgCardProps> = ({
   };
 
   return (
-    <div style={cardStyle}>
-      <div style={headerStyle} onClick={() => setExpanded(!expanded)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <Card>
+      <CardHeader onClick={() => setExpanded(!expanded)}>
+        <CardHeaderInfo>
           <Avatar src={organization.avatar_url} size={48} square alt={organization.login} />
           <div>
-            <h3 style={{ fontSize: 16, margin: 0 }}>{organization.login}</h3>
+            <Heading as="h3" sx={{ fontSize: 2, m: 0 }}>{organization.login}</Heading>
             {organization.description && (
-              <span style={{ fontSize: 14, color: '#6e7781' }}>{organization.description}</span>
+              <Text sx={{ fontSize: 1, color: 'fg.muted' }}>{organization.description}</Text>
             )}
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        </CardHeaderInfo>
+        <CardHeaderActions>
           <CounterLabel>{installations.length} app(s) installed</CounterLabel>
           {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        </div>
-      </div>
+        </CardHeaderActions>
+      </CardHeader>
 
       {expanded && (
-        <div style={{ padding: 16 }}>
-          <div style={{ marginBottom: 16 }}>
-            <h4 style={{ fontSize: 12, marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #d0d7de' }}>
-              Installed Apps
-            </h4>
+        <CardContent>
+          <Section>
+            <SectionHeader>Installed Apps</SectionHeader>
             {installations.length === 0 ? (
-              <span style={{ color: '#6e7781', fontStyle: 'italic' }}>No apps installed in this organization</span>
+              <Text sx={{ color: 'fg.muted', fontStyle: 'italic' }}>No apps installed in this organization</Text>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+              <AppsGrid>
                 {installations.map(inst => {
                   const app = getAppForInstallation(inst);
                   return (
-                    <div
-                      key={inst.id}
-                      style={{
-                        padding: 12,
-                        background: '#f6f8fa',
-                        border: '1px solid #d0d7de',
-                        borderRadius: 6,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <AppBox key={inst.id}>
+                      <AppBoxHeader>
                         {app?.owner && (
                           <Avatar src={app.owner.avatar_url} size={32} square alt={app.name} />
                         )}
                         <div>
-                          <span style={{ fontWeight: 'bold' }}>{app?.name || inst.app_slug}</span>
-                          <span style={{ fontSize: 12, color: '#6e7781', display: 'block' }}>@{inst.app_slug}</span>
+                          <Text sx={{ fontWeight: 'bold' }}>{app?.name || inst.app_slug}</Text>
+                          <Text sx={{ fontSize: 0, color: 'fg.muted', display: 'block' }}>@{inst.app_slug}</Text>
                         </div>
                         {inst.suspended_at && <Label variant="danger">Suspended</Label>}
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      </AppBoxHeader>
+                      <AppBoxLabels>
                         <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
                           {inst.repository_selection === 'all' ? 'All repos' : 'Selected repos'}
                         </Label>
                         {app?.owner && (
-                          <span style={{ fontSize: 12, color: '#6e7781' }}>by {app.owner.login}</span>
+                          <Text sx={{ fontSize: 0, color: 'fg.muted' }}>by {app.owner.login}</Text>
                         )}
-                      </div>
-                    </div>
+                      </AppBoxLabels>
+                    </AppBox>
                   );
                 })}
-              </div>
+              </AppsGrid>
             )}
-          </div>
+          </Section>
 
           <div>
-            <h4 style={{ fontSize: 12, marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #d0d7de' }}>
-              Repositories
-            </h4>
+            <SectionHeader>Repositories</SectionHeader>
             {loadingRepos ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <LoadingRow>
                 <Spinner size="small" />
-                <span style={{ color: '#6e7781' }}>Loading repositories...</span>
-              </div>
+                <Text sx={{ color: 'fg.muted' }}>Loading repositories...</Text>
+              </LoadingRow>
             ) : (
               <>
                 <div style={{ marginBottom: 8 }}>
@@ -162,7 +219,7 @@ export const OrgCard: FC<OrgCardProps> = ({
                 </div>
 
                 {selectedRepo && (
-                  <div style={{ padding: 12, background: '#f6f8fa', border: '1px solid #d0d7de', borderRadius: 6 }}>
+                  <RepoBox>
                     <div style={{ marginBottom: 8 }}>
                       Apps with access to <strong>{selectedRepo}</strong>:
                     </div>
@@ -173,24 +230,22 @@ export const OrgCard: FC<OrgCardProps> = ({
                           const app = getAppForInstallation(inst);
                           return (
                             <li key={inst.id} style={{ padding: '4px 0', borderBottom: '1px solid #eaeef2', display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span>{app?.name || inst.app_slug}</span>
+                              <Text>{app?.name || inst.app_slug}</Text>
                               <Label variant="accent" size="small">All repos</Label>
                             </li>
                           );
                         })}
                     </ul>
-                    <div style={{ marginTop: 8 }}>
-                      <span style={{ fontSize: 12, color: '#6e7781', fontStyle: 'italic' }}>
-                        Note: Apps with "Selected repos" access require individual repository checks.
-                      </span>
-                    </div>
-                  </div>
+                    <Text as="div" sx={{ mt: 2, fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
+                      Note: Apps with "Selected repos" access require individual repository checks.
+                    </Text>
+                  </RepoBox>
                 )}
               </>
             )}
           </div>
-        </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 };

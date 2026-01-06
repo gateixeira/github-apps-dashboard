@@ -1,9 +1,12 @@
 import { useState, useMemo } from 'react';
+import styled from 'styled-components';
 import {
   Spinner,
   Banner,
   Button,
   Header,
+  Text,
+  Heading,
 } from '@primer/react';
 import { MarkGithubIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
@@ -14,15 +17,51 @@ import { Pagination } from './components/Pagination';
 import { useDashboardData } from './hooks/useDashboardData';
 import type { FilterState, Repository } from './types';
 
-const styles = {
-  container: { minHeight: '100vh', display: 'flex', flexDirection: 'column' as const },
-  main: { flex: 1 },
-  content: { maxWidth: 1400, margin: '0 auto', padding: '32px 24px' },
-  welcomeBox: { textAlign: 'center' as const, padding: '48px 32px', background: '#fff', border: '1px solid #d0d7de', borderRadius: 6 },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' as const, gap: 8 },
-  emptyState: { textAlign: 'center' as const, padding: 32, color: '#6e7781' },
-  footer: { background: '#f6f8fa', borderTop: '1px solid #d0d7de', padding: 16, textAlign: 'center' as const },
-};
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+`;
+
+const Main = styled.main`
+  flex: 1;
+  background: var(--bgColor-muted, #f6f8fa);
+`;
+
+const Content = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px;
+`;
+
+const WelcomeBox = styled.div`
+  text-align: center;
+  padding: 48px 32px;
+  background: var(--bgColor-default, #fff);
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+`;
+
+const ContentHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: 32px;
+`;
+
+const Footer = styled.footer`
+  background: var(--bgColor-muted, #f6f8fa);
+  border-top: 1px solid var(--borderColor-default, #d0d7de);
+  padding: 16px;
+  text-align: center;
+`;
 
 function App() {
   const [token, setToken] = useState('');
@@ -121,19 +160,19 @@ function App() {
   const renderContent = () => {
     if (!isConnected) {
       return (
-        <div style={styles.welcomeBox}>
-          <h3 style={{ marginBottom: 8 }}>Welcome to GitHub Apps Dashboard</h3>
-          <span style={{ color: '#6e7781' }}>Connect to your GitHub Enterprise to view installed apps across organizations.</span>
-        </div>
+        <WelcomeBox>
+          <Heading as="h3" sx={{ mb: 2 }}>Welcome to GitHub Apps Dashboard</Heading>
+          <Text sx={{ color: 'fg.muted' }}>Connect to your GitHub Enterprise to view installed apps across organizations.</Text>
+        </WelcomeBox>
       );
     }
 
     if (loading) {
       return (
-        <div style={styles.welcomeBox}>
+        <WelcomeBox>
           <Spinner size="large" />
-          <div style={{ marginTop: 16, color: '#6e7781' }}>Loading data from GitHub...</div>
-        </div>
+          <Text as="div" sx={{ color: 'fg.muted', mt: 3 }}>Loading data from GitHub...</Text>
+        </WelcomeBox>
       );
     }
 
@@ -141,7 +180,7 @@ function App() {
       return (
         <Banner variant="critical" title="Error">
           <p>{error}</p>
-          <Button onClick={refreshData}>Retry</Button>
+          <Button variant="danger" onClick={refreshData}>Retry</Button>
         </Banner>
       );
     }
@@ -149,8 +188,8 @@ function App() {
     if (filters.viewMode === 'apps') {
       return (
         <div>
-          <div style={styles.header}>
-            <h2 style={{ fontSize: 20, margin: 0 }}>Apps ({pagination.totalCount})</h2>
+          <ContentHeader>
+            <Heading as="h2" sx={{ fontSize: 3, m: 0 }}>Apps ({pagination.totalCount})</Heading>
             <Pagination
               currentPage={pagination.page}
               totalPages={pagination.totalPages}
@@ -158,7 +197,7 @@ function App() {
               perPage={pagination.perPage}
               onPageChange={setPage}
             />
-          </div>
+          </ContentHeader>
           {Array.from(installationsByApp.entries()).map(([slug, insts]) => {
             const app = apps.get(slug);
             if (!app) return null;
@@ -173,9 +212,9 @@ function App() {
             );
           })}
           {installationsByApp.size === 0 && (
-            <div style={styles.emptyState}>
-              No apps found matching your filters.
-            </div>
+            <EmptyState>
+              <Text sx={{ color: 'fg.muted' }}>No apps found matching your filters.</Text>
+            </EmptyState>
           )}
         </div>
       );
@@ -184,7 +223,7 @@ function App() {
     if (filters.viewMode === 'organizations') {
       return (
         <div>
-          <h2 style={{ fontSize: 20, marginBottom: 16 }}>Organizations ({filteredOrganizations.length})</h2>
+          <Heading as="h2" sx={{ fontSize: 3, mb: 3 }}>Organizations ({filteredOrganizations.length})</Heading>
           {filteredOrganizations.map(org => (
             <OrgCard
               key={org.login}
@@ -196,9 +235,9 @@ function App() {
             />
           ))}
           {filteredOrganizations.length === 0 && (
-            <div style={styles.emptyState}>
-              No organizations found matching your filters.
-            </div>
+            <EmptyState>
+              <Text sx={{ color: 'fg.muted' }}>No organizations found matching your filters.</Text>
+            </EmptyState>
           )}
         </div>
       );
@@ -207,10 +246,10 @@ function App() {
     if (filters.viewMode === 'repositories') {
       return (
         <div>
-          <h2 style={{ fontSize: 20, marginBottom: 8 }}>Repositories</h2>
-          <div style={{ color: '#6e7781', marginBottom: 16 }}>
+          <Heading as="h2" sx={{ fontSize: 3, mb: 2 }}>Repositories</Heading>
+          <Text as="div" sx={{ color: 'fg.muted', mb: 3 }}>
             Select an organization to view its repositories and the apps installed on them.
-          </div>
+          </Text>
           {filters.organization ? (
             filteredOrganizations.map(org => (
               <OrgCard
@@ -223,9 +262,9 @@ function App() {
               />
             ))
           ) : (
-            <div style={styles.emptyState}>
-              Please select an organization to view repositories.
-            </div>
+            <EmptyState>
+              <Text sx={{ color: 'fg.muted' }}>Please select an organization to view repositories.</Text>
+            </EmptyState>
           )}
         </div>
       );
@@ -235,23 +274,23 @@ function App() {
   };
 
   return (
-    <div style={styles.container}>
+    <Container>
       <Header>
         <Header.Item>
-          <Header.Link href="#" style={{ fontSize: 16, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Header.Link href="#" sx={{ fontSize: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 2 }}>
             <MarkGithubIcon size={32} />
             GitHub Apps Dashboard
           </Header.Link>
         </Header.Item>
         <Header.Item full>
-          <span style={{ color: 'rgba(255,255,255,0.7)', marginLeft: 8 }}>
+          <Text sx={{ color: 'header.text', opacity: 0.7, ml: 2 }}>
             View and manage GitHub Apps across your enterprise organizations
-          </span>
+          </Text>
         </Header.Item>
       </Header>
 
-      <div style={styles.main}>
-        <div style={styles.content}>
+      <Main>
+        <Content>
           <Settings
             token={token}
             enterpriseUrl={enterpriseUrl}
@@ -276,15 +315,15 @@ function App() {
           )}
 
           {renderContent()}
-        </div>
-      </div>
+        </Content>
+      </Main>
 
-      <footer style={styles.footer}>
-        <span style={{ color: '#6e7781', fontSize: 12 }}>
+      <Footer>
+        <Text sx={{ color: 'fg.muted', fontSize: 0 }}>
           GitHub Apps Dashboard - View installations across your GitHub Enterprise
-        </span>
-      </footer>
-    </div>
+        </Text>
+      </Footer>
+    </Container>
   );
 }
 

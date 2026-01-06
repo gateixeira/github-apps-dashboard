@@ -1,11 +1,14 @@
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import {
   Avatar,
   Label,
   Link,
   Spinner,
   CounterLabel,
+  Text,
+  Heading,
 } from '@primer/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
 import type { GitHubApp, AppInstallation, Repository } from '../types';
@@ -18,22 +21,63 @@ interface AppCardProps {
   enterpriseUrl?: string;
 }
 
-const cardStyle = {
-  border: '1px solid #d0d7de',
-  borderRadius: 6,
-  marginBottom: 8,
-  background: '#fff',
-  overflow: 'hidden' as const,
-};
+const Card = styled.div`
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: var(--bgColor-default, #fff);
+  overflow: hidden;
+`;
 
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: 16,
-  background: '#f6f8fa',
-  cursor: 'pointer',
-};
+const CardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: var(--bgColor-muted, #f6f8fa);
+  cursor: pointer;
+`;
+
+const CardHeaderInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CardHeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const CardContent = styled.div`
+  padding: 16px;
+`;
+
+const InstallationCard = styled.div`
+  padding: 12px;
+  background: var(--bgColor-muted, #f6f8fa);
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+  margin-bottom: 8px;
+`;
+
+const InstallationHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const LabelGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+`;
+
+const Section = styled.div`
+  margin-bottom: 16px;
+`;
 
 export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpriseUrl }) => {
   const [expanded, setExpanded] = useState(false);
@@ -65,66 +109,57 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
   }, [expanded, installations]);
 
   return (
-    <div style={cardStyle}>
-      <div style={headerStyle} onClick={() => setExpanded(!expanded)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <Card>
+      <CardHeader onClick={() => setExpanded(!expanded)}>
+        <CardHeaderInfo>
           {app.owner && (
             <Avatar src={app.owner.avatar_url} size={40} square alt={app.owner.login} />
           )}
           <div>
-            <h3 style={{ fontSize: 16, margin: 0 }}>{app.name}</h3>
-            <span style={{ fontSize: 12, color: '#6e7781' }}>@{app.slug}</span>
+            <Heading as="h3" sx={{ fontSize: 2, m: 0 }}>{app.name}</Heading>
+            <Text sx={{ fontSize: 0, color: 'fg.muted' }}>@{app.slug}</Text>
             {app.owner && (
-              <span style={{ fontSize: 12, color: '#6e7781', marginLeft: 4 }}>by {app.owner.login}</span>
+              <Text sx={{ fontSize: 0, color: 'fg.muted', ml: 1 }}>by {app.owner.login}</Text>
             )}
           </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        </CardHeaderInfo>
+        <CardHeaderActions>
           <CounterLabel>{installations.length} installation(s)</CounterLabel>
           {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        </div>
-      </div>
+        </CardHeaderActions>
+      </CardHeader>
 
       {expanded && (
-        <div style={{ padding: 16 }}>
+        <CardContent>
           {app.description && (
-            <div style={{ color: '#6e7781', marginBottom: 16 }}>{app.description}</div>
+            <Text as="div" sx={{ color: 'fg.muted', mb: 3 }}>{app.description}</Text>
           )}
           
-          <div style={{ marginBottom: 16 }}>
-            <h4 style={{ fontSize: 12, marginBottom: 8 }}>Installations</h4>
+          <Section>
+            <Heading as="h4" sx={{ fontSize: 0, mb: 2 }}>Installations</Heading>
             {installations.map(inst => (
-              <div
-                key={inst.id}
-                style={{
-                  padding: 12,
-                  background: '#f6f8fa',
-                  border: '1px solid #d0d7de',
-                  borderRadius: 6,
-                  marginBottom: 8,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <InstallationCard key={inst.id}>
+                <InstallationHeader>
                   <Avatar src={inst.account.avatar_url} size={32} alt={inst.account.login} />
                   <div>
-                    <span style={{ fontWeight: 'bold' }}>{inst.account.login}</span>
-                    <span style={{ fontSize: 12, color: '#6e7781', marginLeft: 4 }}>{inst.account.type}</span>
+                    <Text sx={{ fontWeight: 'bold' }}>{inst.account.login}</Text>
+                    <Text sx={{ fontSize: 0, color: 'fg.muted', ml: 1 }}>{inst.account.type}</Text>
                   </div>
                   <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
                     {inst.repository_selection === 'all' ? 'All repositories' : 'Selected repositories'}
                   </Label>
                   {inst.suspended_at && <Label variant="danger">Suspended</Label>}
-                </div>
+                </InstallationHeader>
                 
                 <div>
                   {loadingRepos.has(inst.id) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Spinner size="small" />
-                      <span style={{ fontSize: 12, color: '#6e7781' }}>Loading repositories...</span>
+                      <Text sx={{ fontSize: 0, color: 'fg.muted' }}>Loading repositories...</Text>
                     </div>
                   )}
                   {repositories.has(inst.id) && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    <LabelGroup>
                       {repositories.get(inst.id)!.map(repo => (
                         <Label key={repo.id}>
                           <Link href={repo.html_url} target="_blank">
@@ -134,40 +169,40 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
                         </Label>
                       ))}
                       {repositories.get(inst.id)!.length === 0 && (
-                        <span style={{ fontSize: 12, color: '#6e7781', fontStyle: 'italic' }}>
+                        <Text sx={{ fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
                           No repositories accessible
-                        </span>
+                        </Text>
                       )}
-                    </div>
+                    </LabelGroup>
                   )}
                 </div>
-              </div>
+              </InstallationCard>
             ))}
-          </div>
+          </Section>
 
-          <div style={{ marginBottom: 16 }}>
-            <h4 style={{ fontSize: 12, marginBottom: 8 }}>Permissions</h4>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          <Section>
+            <Heading as="h4" sx={{ fontSize: 0, mb: 2 }}>Permissions</Heading>
+            <LabelGroup>
               {Object.entries(app.permissions).map(([key, value]) => (
                 <Label key={key} variant="accent">
                   {key}: {value}
                 </Label>
               ))}
-            </div>
-          </div>
+            </LabelGroup>
+          </Section>
 
           {app.events.length > 0 && (
             <div>
-              <h4 style={{ fontSize: 12, marginBottom: 8 }}>Events</h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <Heading as="h4" sx={{ fontSize: 0, mb: 2 }}>Events</Heading>
+              <LabelGroup>
                 {app.events.map(event => (
                   <Label key={event} variant="success">{event}</Label>
                 ))}
-              </div>
+              </LabelGroup>
             </div>
           )}
-        </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 };

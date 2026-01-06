@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import { useState } from 'react';
+import styled from 'styled-components';
 import {
   FormControl,
   TextInput,
@@ -7,10 +8,32 @@ import {
   Button,
   IconButton,
   Flash,
+  Heading,
 } from '@primer/react';
 import { SyncIcon } from '@primer/octicons-react';
 import type { Organization } from '../types';
 import { api } from '../services/api';
+
+const SettingsContainer = styled.div`
+  padding: 16px;
+  background: var(--bgColor-default, #fff);
+  border-radius: 6px;
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  margin-bottom: 16px;
+`;
+
+const FieldsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin-top: 16px;
+`;
+
+const SelectRow = styled.div`
+  display: flex;
+  gap: 8px;
+`;
 
 interface SettingsProps {
   token: string;
@@ -52,10 +75,10 @@ export const Settings: FC<SettingsProps> = ({
   };
 
   return (
-    <div style={{ padding: 16, background: '#f6f8fa', borderRadius: 6, border: '1px solid #d0d7de', marginBottom: 16 }}>
-      <h2 style={{ fontSize: 20, marginTop: 0, marginBottom: 16 }}>Connection Settings</h2>
+    <SettingsContainer>
+      <Heading as="h2" sx={{ fontSize: 3, mt: 0, mb: 3 }}>Connection Settings</Heading>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', marginTop: 16 }}>
+      <FieldsRow>
         <FormControl>
           <FormControl.Label>GitHub Enterprise URL (optional)</FormControl.Label>
           <TextInput
@@ -81,7 +104,7 @@ export const Settings: FC<SettingsProps> = ({
 
         <FormControl>
           <FormControl.Label>Filter by Organization</FormControl.Label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <SelectRow>
             <Select
               value={selectedOrg}
               onChange={(e) => onSelectedOrgChange(e.target.value)}
@@ -100,7 +123,7 @@ export const Settings: FC<SettingsProps> = ({
               onClick={handleRefreshOrgs}
               disabled={!token || loadingOrgs}
             />
-          </div>
+          </SelectRow>
           <FormControl.Caption>Click refresh to load available organizations</FormControl.Caption>
         </FormControl>
 
@@ -117,7 +140,7 @@ export const Settings: FC<SettingsProps> = ({
             ✓ Connected to GitHub
           </Flash>
         )}
-      </div>
-    </div>
+      </FieldsRow>
+    </SettingsContainer>
   );
 };
