@@ -1,6 +1,6 @@
 import type { FC } from 'react';
-import { useState } from 'react';
-import styled from 'styled-components';
+import { useState, useEffect } from 'react';
+import styled, { keyframes } from 'styled-components';
 import {
   TextInput,
   Select,
@@ -12,6 +12,23 @@ import {
 import { SyncIcon } from '@primer/octicons-react';
 import type { Organization } from '../types';
 import { api } from '../services/api';
+
+const fadeOut = keyframes`
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+`;
+
+const Toast = styled.div<{ $fading: boolean }>`
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 1000;
+  animation: ${props => props.$fading ? fadeOut : 'none'} 0.3s ease-out forwards;
+`;
 
 const SettingsContainer = styled.div`
   padding: 16px;
@@ -90,6 +107,28 @@ export const Settings: FC<SettingsProps> = ({
 }) => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastFading, setToastFading] = useState(false);
+
+  useEffect(() => {
+    if (isConnected) {
+      setShowToast(true);
+      setToastFading(false);
+      
+      const fadeTimer = setTimeout(() => {
+        setToastFading(true);
+      }, 2500);
+      
+      const hideTimer = setTimeout(() => {
+        setShowToast(false);
+      }, 2800);
+      
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(hideTimer);
+      };
+    }
+  }, [isConnected]);
 
   const handleRefreshOrgs = async () => {
     if (!token) return;
@@ -167,14 +206,16 @@ export const Settings: FC<SettingsProps> = ({
         <CaptionCell>Leave empty for github.com</CaptionCell>
         <CaptionCell>Scopes: <code>read:org</code>, <code>repo</code></CaptionCell>
         <CaptionCell>Click refresh to load organizations</CaptionCell>
-        <FlashCell>
-          {isConnected && (
-            <Flash variant="success">
-              ✓ Connected
-            </Flash>
-          )}
-        </FlashCell>
+        <FlashCell />
       </FieldsTable>
+
+      {showToast && (
+        <Toast $fading={toastFading}>
+          <Flash variant="success">
+            ✓ Connected
+          </Flash>
+        </Toast>
+      )}
     </SettingsContainer>
   );
 };
