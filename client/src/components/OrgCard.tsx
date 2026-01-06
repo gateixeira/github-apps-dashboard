@@ -13,6 +13,14 @@ import {
 import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
 import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
 import { api } from '../services/api';
+import { Pagination } from './Pagination';
+
+interface PaginationInfo {
+  page: number;
+  perPage: number;
+  totalCount: number;
+  totalPages: number;
+}
 
 interface OrgCardProps {
   organization: Organization;
@@ -20,6 +28,9 @@ interface OrgCardProps {
   apps: Map<string, GitHubApp>;
   token: string;
   enterpriseUrl?: string;
+  totalInstallations?: number;
+  pagination?: PaginationInfo;
+  onPageChange?: (page: number) => void;
 }
 
 const Card = styled.div`
@@ -75,28 +86,69 @@ const SectionHeader = styled.h4`
 
 const AppsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 8px;
 `;
 
 const AppBox = styled.div`
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 12px;
   padding: 12px;
   background: var(--bgColor-muted, #f6f8fa);
   border: 1px solid var(--borderColor-default, #d0d7de);
   border-radius: 6px;
 `;
 
-const AppBoxHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+const AppAvatar = styled.div`
+  grid-row: 1 / 3;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  
+  img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
 `;
 
-const AppBoxLabels = styled.div`
+const AppInfo = styled.div`
   display: flex;
+  flex-direction: column;
+  min-width: 0;
+`;
+
+const AppName = styled.span`
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const AppSlug = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #6e7781);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const AppLabels = styled.div`
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   align-items: center;
+  margin-top: 4px;
+`;
+
+const AppOwnerText = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #6e7781);
+  margin-left: 4px;
 `;
 
 const RepoBox = styled.div`
@@ -112,17 +164,39 @@ const LoadingRow = styled.div`
   gap: 8px;
 `;
 
+const AppsSectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--borderColor-default, #d0d7de);
+`;
+
+const AppsSectionTitle = styled.h4`
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+`;
+
 export const OrgCard: FC<OrgCardProps> = ({ 
   organization, 
   installations, 
   apps,
   token, 
-  enterpriseUrl 
+  enterpriseUrl,
+  totalInstallations,
+  pagination,
+  onPageChange,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string>('');
+
+  const displayCount = totalInstallations ?? installations.length;
 
   useEffect(() => {
     if (expanded && repositories.length === 0) {
@@ -159,7 +233,7 @@ export const OrgCard: FC<OrgCardProps> = ({
           </div>
         </CardHeaderInfo>
         <CardHeaderActions>
-          <CounterLabel>{installations.length} app(s) installed</CounterLabel>
+          <CounterLabel>{displayCount} app(s) installed</CounterLabel>
           {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </CardHeaderActions>
       </CardHeader>
@@ -167,7 +241,18 @@ export const OrgCard: FC<OrgCardProps> = ({
       {expanded && (
         <CardContent>
           <Section>
-            <SectionHeader>Installed Apps</SectionHeader>
+            <AppsSectionHeader>
+              <AppsSectionTitle>Installed Apps</AppsSectionTitle>
+              {pagination && onPageChange && pagination.totalPages > 1 && (
+                <Pagination
+                  currentPage={pagination.page}
+                  totalPages={pagination.totalPages}
+                  totalCount={pagination.totalCount}
+                  perPage={pagination.perPage}
+                  onPageChange={onPageChange}
+                />
+              )}
+            </AppsSectionHeader>
             {installations.length === 0 ? (
               <Text sx={{ color: 'fg.muted', fontStyle: 'italic' }}>No apps installed in this organization</Text>
             ) : (
@@ -176,24 +261,24 @@ export const OrgCard: FC<OrgCardProps> = ({
                   const app = getAppForInstallation(inst);
                   return (
                     <AppBox key={inst.id}>
-                      <AppBoxHeader>
+                      <AppAvatar>
                         {app?.owner && (
-                          <Avatar src={app.owner.avatar_url} size={32} square alt={app.name} />
+                          <img src={app.owner.avatar_url} alt={app.name} />
                         )}
-                        <div>
-                          <Text sx={{ fontWeight: 'bold' }}>{app?.name || inst.app_slug}</Text>
-                          <Text sx={{ fontSize: 0, color: 'fg.muted', display: 'block' }}>@{inst.app_slug}</Text>
-                        </div>
-                        {inst.suspended_at && <Label variant="danger">Suspended</Label>}
-                      </AppBoxHeader>
-                      <AppBoxLabels>
+                      </AppAvatar>
+                      <AppInfo>
+                        <AppName>{app?.name || inst.app_slug}</AppName>
+                        <AppSlug>@{inst.app_slug}</AppSlug>
+                      </AppInfo>
+                      <AppLabels>
                         <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
                           {inst.repository_selection === 'all' ? 'All repos' : 'Selected repos'}
                         </Label>
+                        {inst.suspended_at && <Label variant="danger">Suspended</Label>}
                         {app?.owner && (
-                          <Text sx={{ fontSize: 0, color: 'fg.muted' }}>by {app.owner.login}</Text>
+                          <AppOwnerText>by {app.owner.login}</AppOwnerText>
                         )}
-                      </AppBoxLabels>
+                      </AppLabels>
                     </AppBox>
                   );
                 })}

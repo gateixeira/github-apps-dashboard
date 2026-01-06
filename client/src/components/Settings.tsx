@@ -29,7 +29,7 @@ const SectionTitle = styled.h2`
 
 const FieldsTable = styled.div`
   display: grid;
-  grid-template-columns: auto auto auto auto;
+  grid-template-columns: minmax(260px, 1fr) minmax(200px, 1fr) minmax(180px, auto) auto;
   grid-template-rows: auto auto auto;
   gap: 8px 24px;
   align-items: start;
@@ -46,6 +46,10 @@ const InputCell = styled.div`
   display: flex;
   gap: 8px;
   align-items: center;
+  
+  input {
+    width: 100%;
+  }
 `;
 
 const CaptionCell = styled.div`
@@ -117,6 +121,7 @@ export const Settings: FC<SettingsProps> = ({
             value={enterpriseUrl}
             onChange={(e) => onEnterpriseUrlChange(e.target.value)}
             placeholder="https://github.example.com/api/v3"
+            block
           />
         </InputCell>
         <InputCell>
@@ -125,6 +130,7 @@ export const Settings: FC<SettingsProps> = ({
             value={token}
             onChange={(e) => onTokenChange(e.target.value)}
             placeholder="ghp_xxxxxxxxxxxx"
+            block
           />
         </InputCell>
         <InputCell>

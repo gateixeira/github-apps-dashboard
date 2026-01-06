@@ -235,16 +235,24 @@ function App() {
       return (
         <div>
           <SectionTitle>Organizations ({filteredOrganizations.length})</SectionTitle>
-          {filteredOrganizations.map(org => (
-            <OrgCard
-              key={org.login}
-              organization={org}
-              installations={installationsByOrg.get(org.login) || []}
-              apps={apps}
-              token={token}
-              enterpriseUrl={enterpriseUrl}
-            />
-          ))}
+          {filteredOrganizations.map(org => {
+            const orgInstallations = installationsByOrg.get(org.login) || [];
+            const totalForOrg = filteredOrganizations.length === 1 ? pagination.totalCount : undefined;
+            const showPagination = filteredOrganizations.length === 1;
+            return (
+              <OrgCard
+                key={org.login}
+                organization={org}
+                installations={orgInstallations}
+                apps={apps}
+                token={token}
+                enterpriseUrl={enterpriseUrl}
+                totalInstallations={totalForOrg}
+                pagination={showPagination ? pagination : undefined}
+                onPageChange={showPagination ? setPage : undefined}
+              />
+            );
+          })}
           {filteredOrganizations.length === 0 && (
             <EmptyState>
               <Text sx={{ color: 'fg.muted' }}>No organizations found matching your filters.</Text>
@@ -262,16 +270,24 @@ function App() {
             Select an organization to view its repositories and the apps installed on them.
           </Text>
           {filters.organization ? (
-            filteredOrganizations.map(org => (
-              <OrgCard
-                key={org.login}
-                organization={org}
-                installations={installationsByOrg.get(org.login) || []}
-                apps={apps}
-                token={token}
-                enterpriseUrl={enterpriseUrl}
-              />
-            ))
+            filteredOrganizations.map(org => {
+              const orgInstallations = installationsByOrg.get(org.login) || [];
+              const totalForOrg = filteredOrganizations.length === 1 ? pagination.totalCount : undefined;
+              const showPagination = filteredOrganizations.length === 1;
+              return (
+                <OrgCard
+                  key={org.login}
+                  organization={org}
+                  installations={orgInstallations}
+                  apps={apps}
+                  token={token}
+                  enterpriseUrl={enterpriseUrl}
+                  totalInstallations={totalForOrg}
+                  pagination={showPagination ? pagination : undefined}
+                  onPageChange={showPagination ? setPage : undefined}
+                />
+              );
+            })
           ) : (
             <EmptyState>
               <Text sx={{ color: 'fg.muted' }}>Please select an organization to view repositories.</Text>
