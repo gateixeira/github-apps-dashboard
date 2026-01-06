@@ -1,0 +1,196 @@
+.org-card {
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.org-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.org-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  cursor: pointer;
+  background: #f6f8fa;
+  border-bottom: 1px solid #d0d7de;
+}
+
+.org-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.org-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+}
+
+.org-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.org-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #24292f;
+}
+
+.org-description {
+  font-size: 13px;
+  color: #57606a;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.org-card-body {
+  padding: 16px;
+}
+
+.org-apps-section,
+.org-repos-section {
+  margin-bottom: 20px;
+}
+
+.org-apps-section h4,
+.org-repos-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #24292f;
+  border-bottom: 1px solid #d0d7de;
+  padding-bottom: 8px;
+}
+
+.no-apps {
+  color: #57606a;
+  font-style: italic;
+}
+
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.org-app-item {
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.org-app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.org-app-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.org-app-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.org-app-name {
+  font-weight: 600;
+  color: #24292f;
+}
+
+.org-app-slug {
+  font-size: 12px;
+  color: #57606a;
+}
+
+.org-app-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.app-owner-info {
+  font-size: 11px;
+  color: #57606a;
+}
+
+.repo-selector {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.repo-apps {
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.repo-apps-info {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+
+.repo-apps-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px 0;
+}
+
+.repo-apps-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid #d0d7de;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.repo-apps-list li:last-child {
+  border-bottom: none;
+}
+
+.all-repos-badge {
+  background: #ddf4ff;
+  color: #0969da;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.repo-apps-note {
+  margin: 8px 0 0 0;
+  font-size: 12px;
+  color: #57606a;
+  font-style: italic;
+}
+
+.loading {
+  color: #57606a;
+  font-style: italic;
+}

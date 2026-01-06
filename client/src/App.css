@@ -1,0 +1,144 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: #f6f8fa;
+  color: #24292f;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #24292f 0%, #0969da 100%);
+  color: white;
+  padding: 24px 32px;
+  text-align: center;
+}
+
+.app-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.app-header p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 16px;
+}
+
+.app-main {
+  flex: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 32px;
+  width: 100%;
+}
+
+.app-footer {
+  background: #24292f;
+  color: #8b949e;
+  padding: 16px 32px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.app-footer p {
+  margin: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  color: #24292f;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #57606a;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 48px;
+  background: white;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #d0d7de;
+  border-top-color: #0969da;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p {
+  margin: 0;
+  color: #57606a;
+}
+
+.error-state {
+  text-align: center;
+  padding: 48px;
+  background: #ffebe9;
+  border: 1px solid #cf222e;
+  border-radius: 8px;
+}
+
+.error-state h3 {
+  margin: 0 0 8px 0;
+  color: #cf222e;
+}
+
+.error-state p {
+  margin: 0 0 16px 0;
+  color: #82071e;
+}
+
+.error-state button {
+  padding: 8px 16px;
+  background: #cf222e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.apps-view h2,
+.orgs-view h2,
+.repos-view h2 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #24292f;
+}
+
+.view-note {
+  color: #57606a;
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}

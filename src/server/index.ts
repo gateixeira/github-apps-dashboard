@@ -1,0 +1,117 @@
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { GitHubService } from './github-service';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(express.json());
+
+const getGitHubService = (req: Request): GitHubService => {
+  const token = req.headers.authorization?.replace('Bearer ', '') || process.env.GITHUB_TOKEN || '';
+  const baseUrl = (req.headers['x-github-enterprise-url'] as string) || process.env.GITHUB_ENTERPRISE_URL;
+  return new GitHubService(token, baseUrl);
+};
+
+// Get all organizations
+app.get('/api/organizations', async (req: Request, res: Response) => {
+  try {
+    const githubService = getGitHubService(req);
+    const orgs = await githubService.getOrganizationsForUser();
+    res.json(orgs);
+  } catch (error) {
+    console.error('Error fetching organizations:', error);
+    res.status(500).json({ error: 'Failed to fetch organizations' });
+  }
+});
+
+// Get app installations for an organization
+app.get('/api/organizations/:org/installations', async (req: Request, res: Response) => {
+  try {
+    const githubService = getGitHubService(req);
+    const { org } = req.params;
+    const installations = await githubService.getAppInstallationsForOrg(org);
+    res.json(installations);
+  } catch (error) {
+    console.error('Error fetching installations:', error);
+    res.status(500).json({ error: 'Failed to fetch installations' });
+  }
+});
+
+// Get app details by slug
+app.get('/api/apps/:slug', async (req: Request, res: Response) => {
+  try {
+    const githubService = getGitHubService(req);
+    const { slug } = req.params;
+    const app = await githubService.getApp(slug);
+    if (app) {
+      res.json(app);
+    } else {
+      res.status(404).json({ error: 'App not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching app:', error);
+    res.status(500).json({ error: 'Failed to fetch app' });
+  }
+});
+
+// Get repositories for an installation
+app.get('/api/installations/:installationId/repositories', async (req: Request, res: Response) => {
+  try {
+    const githubService = getGitHubService(req);
+    const token = req.headers.authorization?.replace('Bearer ', '') || process.env.GITHUB_TOKEN || '';
+    const { installationId } = req.params;
+    const repos = await githubService.getInstallationRepositories(parseInt(installationId), token);
+    res.json(repos);
+  } catch (error) {
+    console.error('Error fetching repositories:', error);
+    res.status(500).json({ error: 'Failed to fetch repositories' });
+  }
+});
+
+// Get repositories for an organization
+app.get('/api/organizations/:org/repositories', async (req: Request, res: Response) => {
+  try {
+    const githubService = getGitHubService(req);
+    const { org } = req.params;
+    const repos = await githubService.getRepositoriesForOrg(org);
+    res.json(repos);
+  } catch (error) {
+    console.error('Error fetching repositories:', error);
+    res.status(500).json({ error: 'Failed to fetch repositories' });
+  }
+});
+
+// Get all installations with app details for multiple orgs
+app.post('/api/dashboard/data', async (req: Request, res: Response) => {
+  try {
+    const githubService = getGitHubService(req);
+    const { organizations } = req.body;
+    
+    if (!organizations || !Array.isArray(organizations)) {
+      return res.status(400).json({ error: 'Organizations array required' });
+    }
+
+    const result = await githubService.getAllInstallationsWithDetails(organizations);
+    res.json({
+      installations: result.installations,
+      apps: Array.from(result.apps.values()),
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard data' });
+  }
+});
+
+// Health check
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.json({ status: 'ok' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

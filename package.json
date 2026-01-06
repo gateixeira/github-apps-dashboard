@@ -1,0 +1,34 @@
+{
+  "name": "appdashboard",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "server": "ts-node src/server/index.ts",
+    "server:dev": "ts-node-dev --respawn src/server/index.ts",
+    "client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build:server": "tsc",
+    "build:client": "cd client && npm run build",
+    "build": "npm run build:server && npm run build:client",
+    "start": "node dist/server/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "GitHub Apps Dashboard for GitHub Enterprise",
+  "dependencies": {
+    "@octokit/rest": "^22.0.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "ts-node-dev": "^2.0.0"
+  }
+}
