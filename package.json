@@ -1,6 +1,7 @@
 {
-  "name": "appdashboard",
+  "name": "github-apps-dashboard",
   "version": "1.0.0",
+  "description": "A web application to view and manage GitHub Apps installed across your GitHub Enterprise organizations",
   "main": "index.js",
   "scripts": {
     "server": "ts-node src/server/index.ts",
@@ -12,10 +13,28 @@
     "build": "npm run build:server && npm run build:client",
     "start": "node dist/server/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "GitHub Apps Dashboard for GitHub Enterprise",
+  "keywords": [
+    "github",
+    "github-apps",
+    "github-enterprise",
+    "dashboard",
+    "admin",
+    "devops",
+    "security"
+  ],
+  "author": "Guilherme Teixeira <gateixeira@github.com> (https://github.com/gateixeira)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gateixeira/github-apps-dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gateixeira/github-apps-dashboard/issues"
+  },
+  "homepage": "https://github.com/gateixeira/github-apps-dashboard#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@octokit/rest": "^22.0.1",
     "@types/cors": "^2.8.19",
