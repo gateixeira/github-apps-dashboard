@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 import {
   Spinner,
@@ -6,14 +6,18 @@ import {
   Button,
   Header,
   Text,
+  Label,
+  Avatar,
+  Link,
 } from '@primer/react';
-import { MarkGithubIcon } from '@primer/octicons-react';
+import { MarkGithubIcon, LockIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
 import { FilterBar } from './components/FilterBar';
 import { AppCard } from './components/AppCard';
 import { OrgCard } from './components/OrgCard';
 import { Pagination } from './components/Pagination';
 import { useDashboardData } from './hooks/useDashboardData';
+import { api } from './services/api';
 import type { FilterState, Repository } from './types';
 
 const Container = styled.div`
@@ -74,6 +78,119 @@ const Footer = styled.footer`
   text-align: center;
 `;
 
+const LoadingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const RepoViewContainer = styled.div`
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  min-height: 400px;
+`;
+
+const RepoList = styled.div`
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+  background: var(--bgColor-default, #fff);
+  overflow: hidden;
+  max-height: 600px;
+  overflow-y: auto;
+`;
+
+const RepoListItem = styled.div<{ $selected?: boolean }>`
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--borderColor-default, #d0d7de);
+  cursor: pointer;
+  background: ${props => props.$selected ? 'var(--bgColor-accent-muted, #ddf4ff)' : 'transparent'};
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background: ${props => props.$selected ? 'var(--bgColor-accent-muted, #ddf4ff)' : 'var(--bgColor-muted, #f6f8fa)'};
+  }
+`;
+
+const RepoName = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const RepoMeta = styled.div`
+  font-size: 12px;
+  color: var(--fgColor-muted, #6e7781);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+`;
+
+const RepoDetails = styled.div`
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+  background: var(--bgColor-default, #fff);
+  padding: 16px;
+`;
+
+const RepoDetailsHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--borderColor-default, #d0d7de);
+`;
+
+const RepoDetailsTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const RepoDetailsDescription = styled.p`
+  font-size: 14px;
+  color: var(--fgColor-muted, #6e7781);
+  margin: 0;
+`;
+
+const AppsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const AppItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bgColor-muted, #f6f8fa);
+  border: 1px solid var(--borderColor-default, #d0d7de);
+  border-radius: 6px;
+`;
+
+const AppItemInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const AppItemName = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+`;
+
+const AppItemSlug = styled.div`
+  font-size: 12px;
+  color: var(--fgColor-muted, #6e7781);
+`;
+
 function App() {
   const [token, setToken] = useState('');
   const [enterpriseUrl, setEnterpriseUrl] = useState('');
@@ -87,6 +204,9 @@ function App() {
     viewMode: 'apps',
   });
   const [allRepositories] = useState<Repository[]>([]);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [selectedRepo, setSelectedRepo] = useState<string>('');
 
   const { 
     organizations, 
@@ -106,6 +226,29 @@ function App() {
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
+
+  // Load repositories when switching to repositories view with an org selected
+  useEffect(() => {
+    const loadRepositories = async () => {
+      if (filters.viewMode === 'repositories' && filters.organization && token) {
+        setLoadingRepos(true);
+        setSelectedRepo('');
+        try {
+          const result = await api.getRepositoriesForOrg(filters.organization, token, enterpriseUrl);
+          setRepositories(result.repositories);
+        } catch (error) {
+          console.error('Failed to load repositories:', error);
+          setRepositories([]);
+        } finally {
+          setLoadingRepos(false);
+        }
+      } else if (filters.viewMode !== 'repositories') {
+        setRepositories([]);
+        setSelectedRepo('');
+      }
+    };
+    loadRepositories();
+  }, [filters.viewMode, filters.organization, token, enterpriseUrl]);
 
   const appOwners = useMemo(() => {
     const owners = new Set<string>();
@@ -245,8 +388,6 @@ function App() {
                 organization={org}
                 installations={orgInstallations}
                 apps={apps}
-                token={token}
-                enterpriseUrl={enterpriseUrl}
                 totalInstallations={totalForOrg}
                 pagination={showPagination ? pagination : undefined}
                 onPageChange={showPagination ? setPage : undefined}
@@ -263,35 +404,103 @@ function App() {
     }
 
     if (filters.viewMode === 'repositories') {
+      const getAppForInstallation = (inst: typeof installations[0]) => {
+        return apps.get(inst.app_slug);
+      };
+
+      // Get installations for the selected organization
+      const orgInstallations = filters.organization 
+        ? installationsByOrg.get(filters.organization) || []
+        : [];
+
+      // Find the selected repository object
+      const selectedRepository = repositories.find(r => r.full_name === selectedRepo);
+
       return (
         <div>
-          <SectionTitle>Repositories</SectionTitle>
-          <Text as="div" sx={{ color: 'fg.muted', mb: 3 }}>
-            Select an organization to view its repositories and the apps installed on them.
-          </Text>
-          {filters.organization ? (
-            filteredOrganizations.map(org => {
-              const orgInstallations = installationsByOrg.get(org.login) || [];
-              const totalForOrg = filteredOrganizations.length === 1 ? pagination.totalCount : undefined;
-              const showPagination = filteredOrganizations.length === 1;
-              return (
-                <OrgCard
-                  key={org.login}
-                  organization={org}
-                  installations={orgInstallations}
-                  apps={apps}
-                  token={token}
-                  enterpriseUrl={enterpriseUrl}
-                  totalInstallations={totalForOrg}
-                  pagination={showPagination ? pagination : undefined}
-                  onPageChange={showPagination ? setPage : undefined}
-                />
-              );
-            })
-          ) : (
+          <SectionTitle>Repositories {repositories.length > 0 && `(${repositories.length})`}</SectionTitle>
+          {!filters.organization ? (
             <EmptyState>
               <Text sx={{ color: 'fg.muted' }}>Please select an organization to view repositories.</Text>
             </EmptyState>
+          ) : loadingRepos ? (
+            <LoadingRow>
+              <Spinner size="small" />
+              <Text sx={{ color: 'fg.muted' }}>Loading repositories...</Text>
+            </LoadingRow>
+          ) : repositories.length === 0 ? (
+            <EmptyState>
+              <Text sx={{ color: 'fg.muted' }}>No repositories found for this organization.</Text>
+            </EmptyState>
+          ) : (
+            <RepoViewContainer>
+              <RepoList>
+                {repositories.map(repo => (
+                  <RepoListItem 
+                    key={repo.id} 
+                    $selected={repo.full_name === selectedRepo}
+                    onClick={() => setSelectedRepo(repo.full_name)}
+                  >
+                    <RepoName>{repo.name}</RepoName>
+                    <RepoMeta>
+                      {repo.private && (
+                        <>
+                          <LockIcon size={12} />
+                          <span>Private</span>
+                        </>
+                      )}
+                    </RepoMeta>
+                  </RepoListItem>
+                ))}
+              </RepoList>
+
+              <RepoDetails>
+                {!selectedRepo ? (
+                  <EmptyState>
+                    <Text sx={{ color: 'fg.muted' }}>Select a repository to see installed apps</Text>
+                  </EmptyState>
+                ) : selectedRepository && (
+                  <>
+                    <RepoDetailsHeader>
+                      <Avatar src={selectedRepository.owner.avatar_url} size={40} alt={selectedRepository.owner.login} />
+                      <div>
+                        <RepoDetailsTitle>
+                          <Link href={selectedRepository.html_url} target="_blank">{selectedRepository.full_name}</Link>
+                        </RepoDetailsTitle>
+                        {selectedRepository.description && (
+                          <RepoDetailsDescription>{selectedRepository.description}</RepoDetailsDescription>
+                        )}
+                      </div>
+                      {selectedRepository.private && <Label variant="danger">Private</Label>}
+                    </RepoDetailsHeader>
+
+                    <SectionTitle>Apps with access</SectionTitle>
+                    <AppsList>
+                      {orgInstallations
+                        .filter(inst => inst.repository_selection === 'all')
+                        .map(inst => {
+                          const app = getAppForInstallation(inst);
+                          return (
+                            <AppItem key={inst.id}>
+                              {app?.owner && (
+                                <Avatar src={app.owner.avatar_url} size={32} square alt={app.name} />
+                              )}
+                              <AppItemInfo>
+                                <AppItemName>{app?.name || inst.app_slug}</AppItemName>
+                                <AppItemSlug>@{inst.app_slug}</AppItemSlug>
+                              </AppItemInfo>
+                              <Label variant="accent" size="small">All repos</Label>
+                            </AppItem>
+                          );
+                        })}
+                    </AppsList>
+                    <Text as="div" sx={{ mt: 2, fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
+                      Note: Apps with "Selected repos" access require individual repository checks.
+                    </Text>
+                  </>
+                )}
+              </RepoDetails>
+            </RepoViewContainer>
           )}
         </div>
       );
@@ -304,7 +513,7 @@ function App() {
     <Container>
       <Header>
         <Header.Item>
-          <Header.Link href="#" sx={{ fontSize: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Header.Link href="#" sx={{ fontSize: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <MarkGithubIcon size={32} />
             GitHub Apps Dashboard
           </Header.Link>
@@ -347,7 +556,14 @@ function App() {
 
       <Footer>
         <Text sx={{ color: 'fg.muted', fontSize: 0 }}>
-          GitHub Apps Dashboard - View installations across your GitHub Enterprise
+          GitHub Apps Dashboard{' | '}View installations across your GitHub Enterprise{' | '}Made by{' '}
+          <a href="https://github.com/gateixeira" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+            @gateixeira
+          </a>
+          {' | '}
+          <a href="https://github.com/gateixeira/github-apps-dashboard" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+            View on GitHub
+          </a>
         </Text>
       </Footer>
     </Container>

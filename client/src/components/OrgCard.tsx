@@ -1,18 +1,15 @@
 import type { FC } from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import styled from 'styled-components';
 import {
   Avatar,
   Label,
   CounterLabel,
-  Spinner,
-  Select,
-  FormControl,
   Text,
+  Link,
 } from '@primer/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
-import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
-import { api } from '../services/api';
+import type { Organization, AppInstallation, GitHubApp } from '../types';
 import { Pagination } from './Pagination';
 
 interface PaginationInfo {
@@ -26,8 +23,6 @@ interface OrgCardProps {
   organization: Organization;
   installations: AppInstallation[];
   apps: Map<string, GitHubApp>;
-  token: string;
-  enterpriseUrl?: string;
   totalInstallations?: number;
   pagination?: PaginationInfo;
   onPageChange?: (page: number) => void;
@@ -76,14 +71,6 @@ const CardTitle = styled.h3`
   margin: 0;
 `;
 
-const SectionHeader = styled.h4`
-  font-size: 12px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--borderColor-default, #d0d7de);
-`;
-
 const AppsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -129,12 +116,15 @@ const AppName = styled.span`
   text-overflow: ellipsis;
 `;
 
-const AppSlug = styled.span`
+const AppSlugLink = styled(Link)`
   font-size: 12px;
   color: var(--fgColor-muted, #6e7781);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  &:hover {
+    color: var(--fgColor-accent, #0969da);
+  }
 `;
 
 const AppLabels = styled.div`
@@ -151,18 +141,7 @@ const AppOwnerText = styled.span`
   margin-left: 4px;
 `;
 
-const RepoBox = styled.div`
-  padding: 12px;
-  background: var(--bgColor-muted, #f6f8fa);
-  border: 1px solid var(--borderColor-default, #d0d7de);
-  border-radius: 6px;
-`;
 
-const LoadingRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
 
 const AppsSectionHeader = styled.div`
   display: flex;
@@ -185,36 +164,13 @@ export const OrgCard: FC<OrgCardProps> = ({
   organization, 
   installations, 
   apps,
-  token, 
-  enterpriseUrl,
   totalInstallations,
   pagination,
   onPageChange,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [loadingRepos, setLoadingRepos] = useState(false);
-  const [selectedRepo, setSelectedRepo] = useState<string>('');
 
   const displayCount = totalInstallations ?? installations.length;
-
-  useEffect(() => {
-    if (expanded && repositories.length === 0) {
-      loadRepositories();
-    }
-  }, [expanded]);
-
-  const loadRepositories = async () => {
-    setLoadingRepos(true);
-    try {
-      const result = await api.getRepositoriesForOrg(organization.login, token, enterpriseUrl);
-      setRepositories(result.repositories);
-    } catch (error) {
-      console.error('Failed to load repositories:', error);
-    } finally {
-      setLoadingRepos(false);
-    }
-  };
 
   const getAppForInstallation = (inst: AppInstallation): GitHubApp | undefined => {
     return apps.get(inst.app_slug);
@@ -268,7 +224,7 @@ export const OrgCard: FC<OrgCardProps> = ({
                       </AppAvatar>
                       <AppInfo>
                         <AppName>{app?.name || inst.app_slug}</AppName>
-                        <AppSlug>@{inst.app_slug}</AppSlug>
+                        <AppSlugLink href={`https://github.com/apps/${inst.app_slug}`} target="_blank">@{inst.app_slug}</AppSlugLink>
                       </AppInfo>
                       <AppLabels>
                         <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
@@ -285,56 +241,6 @@ export const OrgCard: FC<OrgCardProps> = ({
               </AppsGrid>
             )}
           </Section>
-
-          <div>
-            <SectionHeader>Repositories</SectionHeader>
-            {loadingRepos ? (
-              <LoadingRow>
-                <Spinner size="small" />
-                <Text sx={{ color: 'fg.muted' }}>Loading repositories...</Text>
-              </LoadingRow>
-            ) : (
-              <>
-                <div style={{ marginBottom: 8 }}>
-                  <FormControl>
-                    <Select 
-                      value={selectedRepo} 
-                      onChange={(e) => setSelectedRepo(e.target.value)}
-                    >
-                      <Select.Option value="">Select a repository to see installed apps</Select.Option>
-                      {repositories.map(repo => (
-                        <Select.Option key={repo.id} value={repo.full_name}>{repo.name}</Select.Option>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </div>
-
-                {selectedRepo && (
-                  <RepoBox>
-                    <div style={{ marginBottom: 8 }}>
-                      Apps with access to <strong>{selectedRepo}</strong>:
-                    </div>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                      {installations
-                        .filter(inst => inst.repository_selection === 'all')
-                        .map(inst => {
-                          const app = getAppForInstallation(inst);
-                          return (
-                            <li key={inst.id} style={{ padding: '4px 0', borderBottom: '1px solid #eaeef2', display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Text>{app?.name || inst.app_slug}</Text>
-                              <Label variant="accent" size="small">All repos</Label>
-                            </li>
-                          );
-                        })}
-                    </ul>
-                    <Text as="div" sx={{ mt: 2, fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
-                      Note: Apps with "Selected repos" access require individual repository checks.
-                    </Text>
-                  </RepoBox>
-                )}
-              </>
-            )}
-          </div>
         </CardContent>
       )}
     </Card>

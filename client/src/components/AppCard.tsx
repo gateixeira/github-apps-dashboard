@@ -128,9 +128,9 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
           )}
           <div>
             <CardTitle>{app.name}</CardTitle>
-            <Text sx={{ fontSize: 0, color: 'fg.muted' }}>@{app.slug}</Text>
+            <Link href={`${enterpriseUrl || 'https://github.com'}/apps/${app.slug}`} target="_blank" sx={{ fontSize: 0, color: 'fg.muted' }}>@{app.slug}</Link>
             {app.owner && (
-              <Text sx={{ fontSize: 0, color: 'fg.muted', ml: 1 }}>by {app.owner.login}</Text>
+              <Text sx={{ fontSize: 0, color: 'fg.muted', ml: 1 }}> by {app.owner.login}</Text>
             )}
           </div>
         </CardHeaderInfo>
@@ -152,9 +152,9 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
               <InstallationCard key={inst.id}>
                 <InstallationHeader>
                   <Avatar src={inst.account.avatar_url} size={32} alt={inst.account.login} />
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Text sx={{ fontWeight: 'bold' }}>{inst.account.login}</Text>
-                    <Text sx={{ fontSize: 0, color: 'fg.muted', ml: 1 }}>{inst.account.type}</Text>
+                    <Label>{inst.account.type}</Label>
                   </div>
                   <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
                     {inst.repository_selection === 'all' ? 'All repositories' : 'Selected repositories'}
@@ -172,11 +172,11 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
                   {repositories.has(inst.id) && (
                     <LabelGroup>
                       {repositories.get(inst.id)!.map(repo => (
-                        <Label key={repo.id}>
+                        <Label key={repo.id} sx={{ display: 'inline-flex', alignItems: 'center' }}>
                           <Link href={repo.html_url} target="_blank">
                             {repo.full_name}
                           </Link>
-                          {repo.private && <Label size="small" variant="danger">Private</Label>}
+                          {repo.private && <span style={{ marginLeft: '8px' }}><Label size="small" variant="danger">Private</Label></span>}
                         </Label>
                       ))}
                       {repositories.get(inst.id)!.length === 0 && (

@@ -127,7 +127,7 @@ export const RepoCard: FC<RepoCardProps> = ({
                   )}
                   <div style={{ flex: 1 }}>
                     <Text sx={{ fontWeight: 'bold', display: 'block' }}>{app?.name || inst.app_slug}</Text>
-                    <Text sx={{ fontSize: 0, color: 'fg.muted' }}>@{inst.app_slug}</Text>
+                    <Link href={`https://github.com/apps/${inst.app_slug}`} target="_blank" sx={{ fontSize: 0, color: 'fg.muted' }}>@{inst.app_slug}</Link>
                     {app?.owner && (
                       <Text sx={{ fontSize: 0, color: 'fg.muted', display: 'block' }}>by {app.owner.login}</Text>
                     )}
