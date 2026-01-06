@@ -1,5 +1,7 @@
 # GitHub Apps Dashboard
 
+> ⚠️ **Important**: this app was 100% vibe-coded in a few hours using [GitHub Copilot CLI](https://github.com/github/copilot-cli) and Claude Opus 4.5.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
