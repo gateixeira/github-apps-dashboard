@@ -8,7 +8,6 @@ import {
   Spinner,
   CounterLabel,
   Text,
-  Heading,
 } from '@primer/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
 import type { GitHubApp, AppInstallation, Repository } from '../types';
@@ -79,6 +78,18 @@ const Section = styled.div`
   margin-bottom: 16px;
 `;
 
+const CardTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const SectionHeader = styled.h4`
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+`;
+
 export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpriseUrl }) => {
   const [expanded, setExpanded] = useState(false);
   const [repositories, setRepositories] = useState<Map<number, Repository[]>>(new Map());
@@ -116,7 +127,7 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
             <Avatar src={app.owner.avatar_url} size={40} square alt={app.owner.login} />
           )}
           <div>
-            <Heading as="h3" sx={{ fontSize: 2, m: 0 }}>{app.name}</Heading>
+            <CardTitle>{app.name}</CardTitle>
             <Text sx={{ fontSize: 0, color: 'fg.muted' }}>@{app.slug}</Text>
             {app.owner && (
               <Text sx={{ fontSize: 0, color: 'fg.muted', ml: 1 }}>by {app.owner.login}</Text>
@@ -136,7 +147,7 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
           )}
           
           <Section>
-            <Heading as="h4" sx={{ fontSize: 0, mb: 2 }}>Installations</Heading>
+            <SectionHeader>Installations</SectionHeader>
             {installations.map(inst => (
               <InstallationCard key={inst.id}>
                 <InstallationHeader>
@@ -181,7 +192,7 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
           </Section>
 
           <Section>
-            <Heading as="h4" sx={{ fontSize: 0, mb: 2 }}>Permissions</Heading>
+            <SectionHeader>Permissions</SectionHeader>
             <LabelGroup>
               {Object.entries(app.permissions).map(([key, value]) => (
                 <Label key={key} variant="accent">
@@ -193,7 +204,7 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
 
           {app.events.length > 0 && (
             <div>
-              <Heading as="h4" sx={{ fontSize: 0, mb: 2 }}>Events</Heading>
+              <SectionHeader>Events</SectionHeader>
               <LabelGroup>
                 {app.events.map(event => (
                   <Label key={event} variant="success">{event}</Label>

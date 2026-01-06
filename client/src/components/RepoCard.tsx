@@ -6,7 +6,6 @@ import {
   Link,
   CounterLabel,
   Text,
-  Heading,
 } from '@primer/react';
 import type { Repository, AppInstallation, GitHubApp } from '../types';
 
@@ -72,6 +71,18 @@ const AppLabels = styled.div`
   align-items: flex-end;
 `;
 
+const CardTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const SectionHeader = styled.h4`
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+`;
+
 export const RepoCard: FC<RepoCardProps> = ({ 
   repository, 
   installations,
@@ -87,13 +98,13 @@ export const RepoCard: FC<RepoCardProps> = ({
         <CardHeaderInfo>
           <Avatar src={repository.owner.avatar_url} size={40} alt={repository.owner.login} />
           <div>
-            <Heading as="h3" sx={{ fontSize: 2, m: 0 }}>
+            <CardTitle>
               <Link href={repository.html_url} target="_blank">
                 {repository.full_name}
               </Link>
-            </Heading>
+            </CardTitle>
             {repository.description && (
-              <Text sx={{ fontSize: 1, color: 'fg.muted' }}>{repository.description}</Text>
+              <Text sx={{ fontSize: 0, color: 'fg.muted' }}>{repository.description}</Text>
             )}
           </div>
         </CardHeaderInfo>
@@ -105,7 +116,7 @@ export const RepoCard: FC<RepoCardProps> = ({
 
       {installations.length > 0 && (
         <CardContent>
-          <Heading as="h4" sx={{ fontSize: 0, mb: 2 }}>Apps with access to this repository</Heading>
+          <SectionHeader>Apps with access to this repository</SectionHeader>
           <AppsGrid>
             {installations.map(inst => {
               const app = getAppForInstallation(inst);

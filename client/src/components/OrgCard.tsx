@@ -9,7 +9,6 @@ import {
   Select,
   FormControl,
   Text,
-  Heading,
 } from '@primer/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
 import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
@@ -60,9 +59,16 @@ const Section = styled.div`
   margin-bottom: 16px;
 `;
 
+const CardTitle = styled.h3`
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+`;
+
 const SectionHeader = styled.h4`
   font-size: 12px;
-  margin-bottom: 8px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--borderColor-default, #d0d7de);
 `;
@@ -146,9 +152,9 @@ export const OrgCard: FC<OrgCardProps> = ({
         <CardHeaderInfo>
           <Avatar src={organization.avatar_url} size={48} square alt={organization.login} />
           <div>
-            <Heading as="h3" sx={{ fontSize: 2, m: 0 }}>{organization.login}</Heading>
+            <CardTitle>{organization.login}</CardTitle>
             {organization.description && (
-              <Text sx={{ fontSize: 1, color: 'fg.muted' }}>{organization.description}</Text>
+              <Text sx={{ fontSize: 0, color: 'fg.muted' }}>{organization.description}</Text>
             )}
           </div>
         </CardHeaderInfo>

@@ -2,13 +2,12 @@ import type { FC } from 'react';
 import { useState } from 'react';
 import styled from 'styled-components';
 import {
-  FormControl,
   TextInput,
   Select,
   Button,
   IconButton,
   Flash,
-  Heading,
+  Text,
 } from '@primer/react';
 import { SyncIcon } from '@primer/octicons-react';
 import type { Organization } from '../types';
@@ -22,17 +21,44 @@ const SettingsContainer = styled.div`
   margin-bottom: 16px;
 `;
 
-const FieldsRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-end;
-  margin-top: 16px;
+const SectionTitle = styled.h2`
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
 `;
 
-const SelectRow = styled.div`
+const FieldsTable = styled.div`
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  grid-template-rows: auto auto auto;
+  gap: 8px 24px;
+  align-items: start;
+`;
+
+const HeaderCell = styled.div`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fgColor-default, #1f2328);
+  white-space: nowrap;
+`;
+
+const InputCell = styled.div`
   display: flex;
   gap: 8px;
+  align-items: center;
+`;
+
+const CaptionCell = styled.div`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+`;
+
+const ButtonHeader = styled.div`
+  /* Empty placeholder for button column header */
+`;
+
+const FlashCell = styled.div`
+  /* Flash message in caption row */
 `;
 
 interface SettingsProps {
@@ -76,71 +102,73 @@ export const Settings: FC<SettingsProps> = ({
 
   return (
     <SettingsContainer>
-      <Heading as="h2" sx={{ fontSize: 3, mt: 0, mb: 3 }}>Connection Settings</Heading>
+      <SectionTitle>Connection Settings</SectionTitle>
 
-      <FieldsRow>
-        <FormControl>
-          <FormControl.Label>GitHub Enterprise URL (optional)</FormControl.Label>
+      <FieldsTable>
+        {/* Row 1: Headers */}
+        <HeaderCell>GitHub Enterprise URL (optional)</HeaderCell>
+        <HeaderCell>Personal Access Token</HeaderCell>
+        <HeaderCell>Filter by Organization</HeaderCell>
+        <ButtonHeader />
+
+        {/* Row 2: Inputs */}
+        <InputCell>
           <TextInput
             value={enterpriseUrl}
             onChange={(e) => onEnterpriseUrlChange(e.target.value)}
             placeholder="https://github.example.com/api/v3"
           />
-          <FormControl.Caption>Leave empty for github.com</FormControl.Caption>
-        </FormControl>
-
-        <FormControl>
-          <FormControl.Label>Personal Access Token</FormControl.Label>
+        </InputCell>
+        <InputCell>
           <TextInput
             type="password"
             value={token}
             onChange={(e) => onTokenChange(e.target.value)}
             placeholder="ghp_xxxxxxxxxxxx"
           />
-          <FormControl.Caption>
-            Required scopes: <code>read:org</code>, <code>repo</code>
-          </FormControl.Caption>
-        </FormControl>
+        </InputCell>
+        <InputCell>
+          <Select
+            value={selectedOrg}
+            onChange={(e) => onSelectedOrgChange(e.target.value)}
+            disabled={organizations.length === 0}
+          >
+            <Select.Option value="">All Organizations</Select.Option>
+            {organizations.map((org) => (
+              <Select.Option key={org.login} value={org.login}>
+                {org.login}
+              </Select.Option>
+            ))}
+          </Select>
+          <IconButton
+            icon={SyncIcon}
+            aria-label="Refresh organizations"
+            onClick={handleRefreshOrgs}
+            disabled={!token || loadingOrgs}
+          />
+        </InputCell>
+        <InputCell>
+          <Button
+            variant="primary"
+            onClick={onConnect}
+            disabled={!token || loading}
+          >
+            {loading ? 'Connecting...' : isConnected ? 'Reconnect' : 'Connect'}
+          </Button>
+        </InputCell>
 
-        <FormControl>
-          <FormControl.Label>Filter by Organization</FormControl.Label>
-          <SelectRow>
-            <Select
-              value={selectedOrg}
-              onChange={(e) => onSelectedOrgChange(e.target.value)}
-              disabled={organizations.length === 0}
-            >
-              <Select.Option value="">All Organizations</Select.Option>
-              {organizations.map((org) => (
-                <Select.Option key={org.login} value={org.login}>
-                  {org.login}
-                </Select.Option>
-              ))}
-            </Select>
-            <IconButton
-              icon={SyncIcon}
-              aria-label="Refresh organizations"
-              onClick={handleRefreshOrgs}
-              disabled={!token || loadingOrgs}
-            />
-          </SelectRow>
-          <FormControl.Caption>Click refresh to load available organizations</FormControl.Caption>
-        </FormControl>
-
-        <Button
-          variant="primary"
-          onClick={onConnect}
-          disabled={!token || loading}
-        >
-          {loading ? 'Connecting...' : isConnected ? 'Reconnect' : 'Connect'}
-        </Button>
-
-        {isConnected && (
-          <Flash variant="success">
-            ✓ Connected to GitHub
-          </Flash>
-        )}
-      </FieldsRow>
+        {/* Row 3: Captions */}
+        <CaptionCell>Leave empty for github.com</CaptionCell>
+        <CaptionCell>Scopes: <code>read:org</code>, <code>repo</code></CaptionCell>
+        <CaptionCell>Click refresh to load organizations</CaptionCell>
+        <FlashCell>
+          {isConnected && (
+            <Flash variant="success">
+              ✓ Connected
+            </Flash>
+          )}
+        </FlashCell>
+      </FieldsTable>
     </SettingsContainer>
   );
 };

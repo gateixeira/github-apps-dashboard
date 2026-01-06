@@ -6,7 +6,6 @@ import {
   Button,
   Header,
   Text,
-  Heading,
 } from '@primer/react';
 import { MarkGithubIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
@@ -54,6 +53,18 @@ const ContentHeader = styled.div`
 const EmptyState = styled.div`
   text-align: center;
   padding: 32px;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+`;
+
+const WelcomeTitle = styled.h3`
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
 `;
 
 const Footer = styled.footer`
@@ -161,7 +172,7 @@ function App() {
     if (!isConnected) {
       return (
         <WelcomeBox>
-          <Heading as="h3" sx={{ mb: 2 }}>Welcome to GitHub Apps Dashboard</Heading>
+          <WelcomeTitle>Welcome to GitHub Apps Dashboard</WelcomeTitle>
           <Text sx={{ color: 'fg.muted' }}>Connect to your GitHub Enterprise to view installed apps across organizations.</Text>
         </WelcomeBox>
       );
@@ -189,7 +200,7 @@ function App() {
       return (
         <div>
           <ContentHeader>
-            <Heading as="h2" sx={{ fontSize: 3, m: 0 }}>Apps ({pagination.totalCount})</Heading>
+            <SectionTitle>Apps ({pagination.totalCount})</SectionTitle>
             <Pagination
               currentPage={pagination.page}
               totalPages={pagination.totalPages}
@@ -223,7 +234,7 @@ function App() {
     if (filters.viewMode === 'organizations') {
       return (
         <div>
-          <Heading as="h2" sx={{ fontSize: 3, mb: 3 }}>Organizations ({filteredOrganizations.length})</Heading>
+          <SectionTitle>Organizations ({filteredOrganizations.length})</SectionTitle>
           {filteredOrganizations.map(org => (
             <OrgCard
               key={org.login}
@@ -246,7 +257,7 @@ function App() {
     if (filters.viewMode === 'repositories') {
       return (
         <div>
-          <Heading as="h2" sx={{ fontSize: 3, mb: 2 }}>Repositories</Heading>
+          <SectionTitle>Repositories</SectionTitle>
           <Text as="div" sx={{ color: 'fg.muted', mb: 3 }}>
             Select an organization to view its repositories and the apps installed on them.
           </Text>
