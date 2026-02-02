@@ -2,10 +2,9 @@ import type { FC } from 'react';
 import styled from 'styled-components';
 import { FormControl, Select, SegmentedControl } from '@primer/react';
 import { InfoIcon } from '@primer/octicons-react';
-import type { Organization, FilterState, ViewMode, UsageFilter } from '../types';
+import type { FilterState, ViewMode, UsageFilter } from '../types';
 
 interface FilterBarProps {
-  organizations: Organization[];
   appOwners: string[];
   appSlugs: string[];
   repositories: string[];
@@ -36,7 +35,6 @@ const InfoText = styled.div`
 `;
 
 export const FilterBar: FC<FilterBarProps> = ({
-  organizations,
   appOwners,
   appSlugs,
   repositories,
@@ -61,21 +59,6 @@ export const FilterBar: FC<FilterBarProps> = ({
           {viewModes.map((mode) => (
             <Select.Option key={mode.value} value={mode.value}>
               {mode.label}
-            </Select.Option>
-          ))}
-        </Select>
-      </FormControl>
-
-      <FormControl>
-        <FormControl.Label>Organization</FormControl.Label>
-        <Select
-          value={filters.organization}
-          onChange={(e) => onFilterChange({ organization: e.target.value })}
-        >
-          <Select.Option value="">All Organizations</Select.Option>
-          {organizations.map((org) => (
-            <Select.Option key={org.login} value={org.login}>
-              {org.login}
             </Select.Option>
           ))}
         </Select>

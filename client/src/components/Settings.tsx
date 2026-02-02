@@ -151,7 +151,7 @@ export const Settings: FC<SettingsProps> = ({
         {/* Row 1: Headers */}
         <HeaderCell>GitHub Enterprise URL (optional)</HeaderCell>
         <HeaderCell>Personal Access Token</HeaderCell>
-        <HeaderCell>Filter by Organization</HeaderCell>
+        <HeaderCell>Organization <Text sx={{ color: 'danger.fg' }}>*</Text></HeaderCell>
         <ButtonHeader />
 
         {/* Row 2: Inputs */}
@@ -178,7 +178,7 @@ export const Settings: FC<SettingsProps> = ({
             onChange={(e) => onSelectedOrgChange(e.target.value)}
             disabled={organizations.length === 0}
           >
-            <Select.Option value="">All Organizations</Select.Option>
+            <Select.Option value="">Select an organization...</Select.Option>
             {organizations.map((org) => (
               <Select.Option key={org.login} value={org.login}>
                 {org.login}
@@ -196,7 +196,7 @@ export const Settings: FC<SettingsProps> = ({
           <Button
             variant="primary"
             onClick={onConnect}
-            disabled={!token || loading}
+            disabled={!token || !selectedOrg || loading}
           >
             {loading ? 'Connecting...' : isConnected ? 'Reconnect' : 'Connect'}
           </Button>
@@ -205,7 +205,13 @@ export const Settings: FC<SettingsProps> = ({
         {/* Row 3: Captions */}
         <CaptionCell>Leave empty for github.com</CaptionCell>
         <CaptionCell>Scopes: <code>read:org</code>, <code>repo</code></CaptionCell>
-        <CaptionCell>Click refresh to load organizations</CaptionCell>
+        <CaptionCell>
+          {!selectedOrg && organizations.length > 0 ? (
+            <Text sx={{ color: 'attention.fg' }}>⚠ Organization required</Text>
+          ) : (
+            'Click refresh to load organizations'
+          )}
+        </CaptionCell>
         <FlashCell />
       </FieldsTable>
 

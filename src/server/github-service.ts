@@ -287,9 +287,6 @@ export class GitHubService {
       let nextCursor: string | undefined;
       const linkHeader = response.headers.link;
       if (linkHeader) {
-        // Debug: log link header to see format
-        console.log(`Link header: ${linkHeader}`);
-        
         const nextMatch = linkHeader.match(/<[^>]*[?&]after=([^&>]+)[^>]*>;\s*rel="next"/);
         if (nextMatch) {
           // The cursor in the Link header is URL-encoded, we need to decode it once

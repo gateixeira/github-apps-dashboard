@@ -587,7 +587,6 @@ function App() {
 
           {isConnected && !loading && (
             <FilterBar
-              organizations={organizations}
               appOwners={appOwners}
               appSlugs={appSlugs}
               repositories={repositoryNames}

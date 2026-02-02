@@ -113,7 +113,7 @@ export function AuditLogProgress({ progress, totalOrgs = 1, currentOrgIndex = 0 
       </IconWrapper>
       
       <Text as="div" sx={{ fontSize: 2, fontWeight: 'semibold', mb: 1 }}>
-        Scanning Audit Logs
+        Scanning Audit Logs for apps activity
       </Text>
       
       <Message as="div" sx={{ fontSize: 1, color: 'fg.muted', mb: 3, textAlign: 'center' }}>
