@@ -204,7 +204,8 @@ export const Settings: FC<SettingsProps> = ({
 
         {/* Row 3: Captions */}
         <CaptionCell>Leave empty for github.com</CaptionCell>
-        <CaptionCell>Scopes: <code>read:org</code>, <code>repo</code></CaptionCell>
+        <CaptionCell>Scopes: <code>radmin:org</code>, <code>audit_log</code>,<code>read:enterprise</code>, <code>repo</code>
+</CaptionCell>
         <CaptionCell>
           {!selectedOrg && organizations.length > 0 ? (
             <Text sx={{ color: 'attention.fg' }}>⚠ Organization required</Text>

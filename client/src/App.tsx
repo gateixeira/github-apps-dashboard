@@ -17,6 +17,7 @@ import { AppCard } from './components/AppCard';
 import { OrgCard } from './components/OrgCard';
 import { Pagination } from './components/Pagination';
 import { AuditLogProgress } from './components/AuditLogProgress';
+import { LoadingProgress } from './components/LoadingProgress';
 import { useDashboardData } from './hooks/useDashboardData';
 import { useAppUsage } from './hooks/useAppUsage';
 import { api } from './services/api';
@@ -215,6 +216,7 @@ function App() {
     installations, 
     apps, 
     loading, 
+    loadingProgress,
     error, 
     pagination,
     setPage,
@@ -360,8 +362,14 @@ function App() {
     if (loading) {
       return (
         <WelcomeBox>
-          <Spinner size="large" />
-          <Text as="div" sx={{ color: 'fg.muted', mt: 3 }}>Loading data from GitHub...</Text>
+          {loadingProgress ? (
+            <LoadingProgress progress={loadingProgress} />
+          ) : (
+            <>
+              <Spinner size="large" />
+              <Text as="div" sx={{ color: 'fg.muted', mt: 3 }}>Loading data from GitHub...</Text>
+            </>
+          )}
         </WelcomeBox>
       );
     }

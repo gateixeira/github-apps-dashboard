@@ -9,12 +9,22 @@ interface PaginationInfo {
   totalPages: number;
 }
 
+export interface LoadingProgress {
+  phase: 'organizations' | 'installations' | 'apps' | 'complete';
+  message: string;
+  currentOrg?: string;
+  orgsProcessed: number;
+  totalOrgs: number;
+  appsLoaded: number;
+}
+
 interface UseDashboardDataResult {
   organizations: Organization[];
   installations: AppInstallation[];
   apps: Map<string, GitHubApp>;
   repositories: Map<number, Repository[]>;
   loading: boolean;
+  loadingProgress: LoadingProgress | null;
   error: string | null;
   pagination: PaginationInfo;
   setPage: (page: number) => void;
@@ -30,6 +40,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
   const [apps, setApps] = useState<Map<string, GitHubApp>>(new Map());
   const [repositories, setRepositories] = useState<Map<number, Repository[]>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState<LoadingProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -43,6 +54,13 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
 
     setLoading(true);
     setError(null);
+    setLoadingProgress({
+      phase: 'organizations',
+      message: 'Fetching organizations...',
+      orgsProcessed: 0,
+      totalOrgs: 0,
+      appsLoaded: 0,
+    });
 
     try {
       const allOrgs = await api.getOrganizations(token, enterpriseUrl);
@@ -51,11 +69,30 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         : allOrgs;
       setOrganizations(orgsToProcess);
 
+      setLoadingProgress({
+        phase: 'installations',
+        message: `Found ${orgsToProcess.length} organization${orgsToProcess.length !== 1 ? 's' : ''}`,
+        orgsProcessed: 0,
+        totalOrgs: orgsToProcess.length,
+        appsLoaded: 0,
+      });
+
       const allInstallations: AppInstallation[] = [];
       const appsMap = new Map<string, GitHubApp>();
       let totalCount = 0;
 
-      for (const org of orgsToProcess) {
+      for (let i = 0; i < orgsToProcess.length; i++) {
+        const org = orgsToProcess[i];
+        
+        setLoadingProgress({
+          phase: 'installations',
+          message: `Loading installations from ${org.login}...`,
+          currentOrg: org.login,
+          orgsProcessed: i,
+          totalOrgs: orgsToProcess.length,
+          appsLoaded: appsMap.size,
+        });
+
         try {
           const result = await api.getInstallationsForOrg(org.login, token, enterpriseUrl, page, PER_PAGE);
           allInstallations.push(...result.installations);
@@ -63,6 +100,15 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
 
           for (const inst of result.installations) {
             if (!appsMap.has(inst.app_slug)) {
+              setLoadingProgress({
+                phase: 'apps',
+                message: `Loading app: ${inst.app_slug}...`,
+                currentOrg: org.login,
+                orgsProcessed: i,
+                totalOrgs: orgsToProcess.length,
+                appsLoaded: appsMap.size,
+              });
+              
               const app = await api.getApp(inst.app_slug, token, enterpriseUrl);
               if (app) {
                 appsMap.set(inst.app_slug, app);
@@ -82,10 +128,19 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         totalCount,
         totalPages: Math.ceil(totalCount / PER_PAGE),
       });
+      
+      setLoadingProgress({
+        phase: 'complete',
+        message: `Loaded ${appsMap.size} apps with ${allInstallations.length} installations`,
+        orgsProcessed: orgsToProcess.length,
+        totalOrgs: orgsToProcess.length,
+        appsLoaded: appsMap.size,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
     } finally {
       setLoading(false);
+      setLoadingProgress(null);
     }
   }, [token, enterpriseUrl, filterOrg]);
 
@@ -118,6 +173,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
     apps,
     repositories,
     loading,
+    loadingProgress,
     error,
     pagination,
     setPage,
