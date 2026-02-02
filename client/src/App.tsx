@@ -561,7 +561,8 @@ function App() {
     return null;
   };
 
-  const { colorMode, setColorMode } = useTheme();
+  const { resolvedColorMode, setColorMode } = useTheme();
+  const isDark = resolvedColorMode === 'night' || resolvedColorMode === 'dark';
 
   return (
     <Container>
@@ -579,9 +580,9 @@ function App() {
         </Header.Item>
         <Header.Item>
           <IconButton
-            icon={colorMode === 'night' ? SunIcon : MoonIcon}
-            aria-label={colorMode === 'night' ? 'Switch to light mode' : 'Switch to dark mode'}
-            onClick={() => setColorMode(colorMode === 'night' ? 'day' : 'night')}
+            icon={isDark ? SunIcon : MoonIcon}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={() => setColorMode(isDark ? 'day' : 'night')}
             variant="invisible"
             sx={{ color: 'header.text' }}
           />
