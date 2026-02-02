@@ -10,12 +10,14 @@ interface PaginationInfo {
 }
 
 export interface LoadingProgress {
-  phase: 'organizations' | 'installations' | 'apps' | 'complete';
+  phase: 'organizations' | 'installations' | 'apps' | 'repositories' | 'complete';
   message: string;
   currentOrg?: string;
   orgsProcessed: number;
   totalOrgs: number;
+  installationsLoaded: number;
   appsLoaded: number;
+  repositoriesLoaded: number;
 }
 
 interface UseDashboardDataResult {
@@ -61,7 +63,9 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
       message: 'Fetching organizations...',
       orgsProcessed: 0,
       totalOrgs: 0,
+      installationsLoaded: 0,
       appsLoaded: 0,
+      repositoriesLoaded: 0,
     });
 
     try {
@@ -76,7 +80,9 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         message: `Found ${orgsToProcess.length} organization${orgsToProcess.length !== 1 ? 's' : ''}`,
         orgsProcessed: 0,
         totalOrgs: orgsToProcess.length,
+        installationsLoaded: 0,
         appsLoaded: 0,
+        repositoriesLoaded: 0,
       });
 
       const allInstallations: AppInstallation[] = [];
@@ -92,7 +98,9 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
           currentOrg: org.login,
           orgsProcessed: i,
           totalOrgs: orgsToProcess.length,
+          installationsLoaded: allInstallations.length,
           appsLoaded: appsMap.size,
+          repositoriesLoaded: 0,
         });
 
         try {
@@ -108,7 +116,9 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
                 currentOrg: org.login,
                 orgsProcessed: i,
                 totalOrgs: orgsToProcess.length,
+                installationsLoaded: allInstallations.length,
                 appsLoaded: appsMap.size,
+                repositoriesLoaded: 0,
               });
               
               const app = await github.getApp(inst.app_slug);
@@ -136,7 +146,9 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         message: `Loaded ${appsMap.size} apps with ${allInstallations.length} installations`,
         orgsProcessed: orgsToProcess.length,
         totalOrgs: orgsToProcess.length,
+        installationsLoaded: allInstallations.length,
         appsLoaded: appsMap.size,
+        repositoriesLoaded: 0,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');

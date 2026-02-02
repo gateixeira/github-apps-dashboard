@@ -1,5 +1,5 @@
 import { ProgressBar } from '@primer/react';
-import { OrganizationIcon, AppsIcon, SyncIcon } from '@primer/octicons-react';
+import { OrganizationIcon, AppsIcon, SyncIcon, RepoIcon } from '@primer/octicons-react';
 import styled, { keyframes } from 'styled-components';
 import type { LoadingProgress as LoadingProgressType } from '../hooks/useDashboardData';
 
@@ -109,10 +109,11 @@ interface Props {
 
 export function LoadingProgress({ progress }: Props) {
   const getProgressPercent = () => {
-    const phaseWeights = {
+    const phaseWeights: Record<string, number> = {
       organizations: 10,
-      installations: 50,
-      apps: 90,
+      installations: 40,
+      apps: 70,
+      repositories: 90,
       complete: 100,
     };
     
@@ -121,19 +122,23 @@ export function LoadingProgress({ progress }: Props) {
     const basePercent = phaseWeights[progress.phase] || 0;
     
     if (progress.phase === 'installations' && progress.totalOrgs > 0) {
-      const orgProgress = (progress.orgsProcessed / progress.totalOrgs) * 40;
-      return Math.min(50, 10 + orgProgress);
+      const orgProgress = (progress.orgsProcessed / progress.totalOrgs) * 30;
+      return Math.min(40, 10 + orgProgress);
     }
     
     if (progress.phase === 'apps') {
-      return Math.min(95, 50 + (progress.appsLoaded * 2));
+      return Math.min(70, 40 + (progress.appsLoaded * 2));
+    }
+
+    if (progress.phase === 'repositories') {
+      return Math.min(95, 70 + (progress.repositoriesLoaded / 10));
     }
     
     return basePercent;
   };
 
   const isPhaseComplete = (phase: string) => {
-    const order = ['organizations', 'installations', 'apps', 'complete'];
+    const order = ['organizations', 'installations', 'apps', 'repositories', 'complete'];
     return order.indexOf(phase) < order.indexOf(progress.phase);
   };
 
@@ -175,9 +180,7 @@ export function LoadingProgress({ progress }: Props) {
             <SyncIcon size={18} />
           </StepIcon>
           <StepLabel>Installations</StepLabel>
-          {progress.orgsProcessed > 0 && (
-            <StepValue>{progress.orgsProcessed}/{progress.totalOrgs}</StepValue>
-          )}
+          {progress.installationsLoaded > 0 && <StepValue>{progress.installationsLoaded}</StepValue>}
         </Step>
 
         <Step $active={isPhaseActive('apps')} $complete={isPhaseComplete('apps')}>
@@ -186,6 +189,14 @@ export function LoadingProgress({ progress }: Props) {
           </StepIcon>
           <StepLabel>Apps</StepLabel>
           {progress.appsLoaded > 0 && <StepValue>{progress.appsLoaded}</StepValue>}
+        </Step>
+
+        <Step $active={isPhaseActive('repositories')} $complete={isPhaseComplete('repositories')}>
+          <StepIcon $active={isPhaseActive('repositories')} $complete={isPhaseComplete('repositories')}>
+            <RepoIcon size={18} />
+          </StepIcon>
+          <StepLabel>Repositories</StepLabel>
+          {progress.repositoriesLoaded > 0 && <StepValue>{progress.repositoriesLoaded}</StepValue>}
         </Step>
       </StepsContainer>
     </Container>
