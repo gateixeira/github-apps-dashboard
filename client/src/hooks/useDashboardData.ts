@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '../services/api';
+import { getGitHubService } from '../services/github';
 import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
 
 interface PaginationInfo {
@@ -52,6 +52,8 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
   const loadData = useCallback(async (page: number) => {
     if (!token) return;
 
+    const github = getGitHubService(token, enterpriseUrl);
+
     setLoading(true);
     setError(null);
     setLoadingProgress({
@@ -63,7 +65,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
     });
 
     try {
-      const allOrgs = await api.getOrganizations(token, enterpriseUrl);
+      const allOrgs = await github.getOrganizations();
       const orgsToProcess = filterOrg 
         ? allOrgs.filter(org => org.login === filterOrg) 
         : allOrgs;
@@ -94,7 +96,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         });
 
         try {
-          const result = await api.getInstallationsForOrg(org.login, token, enterpriseUrl, page, PER_PAGE);
+          const result = await github.getAppInstallationsForOrg(org.login, page, PER_PAGE);
           allInstallations.push(...result.installations);
           totalCount += result.totalCount;
 
@@ -109,7 +111,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
                 appsLoaded: appsMap.size,
               });
               
-              const app = await api.getApp(inst.app_slug, token, enterpriseUrl);
+              const app = await github.getApp(inst.app_slug);
               if (app) {
                 appsMap.set(inst.app_slug, app);
               }
@@ -153,8 +155,11 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
   }, [loadData]);
 
   const loadRepositoriesForInstallation = useCallback(async (installationId: number, page: number = 1) => {
+    if (!token) return;
+    const github = getGitHubService(token, enterpriseUrl);
+    
     try {
-      const result = await api.getInstallationRepositories(installationId, token, enterpriseUrl, page, PER_PAGE);
+      const result = await github.getInstallationRepositories(installationId, page, PER_PAGE);
       setRepositories(prev => new Map(prev).set(installationId, result.repositories));
     } catch (e) {
       console.error(`Error loading repositories for installation ${installationId}:`, e);

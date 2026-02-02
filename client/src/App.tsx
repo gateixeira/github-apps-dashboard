@@ -5,11 +5,9 @@ import {
   Banner,
   Button,
   Header,
-  Text,
   Label,
   Avatar,
   Link,
-  IconButton,
   useTheme,
 } from '@primer/react';
 import { MarkGithubIcon, LockIcon, SunIcon, MoonIcon } from '@primer/octicons-react';
@@ -22,7 +20,7 @@ import { AuditLogProgress } from './components/AuditLogProgress';
 import { LoadingProgress } from './components/LoadingProgress';
 import { useDashboardData } from './hooks/useDashboardData';
 import { useAppUsage } from './hooks/useAppUsage';
-import { api } from './services/api';
+import { getGitHubService } from './services/github';
 import type { FilterState, Repository } from './types';
 
 const Container = styled.div`
@@ -87,6 +85,60 @@ const LoadingRow = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+`;
+
+const MutedText = styled.span`
+  color: var(--fgColor-muted, #656d76);
+`;
+
+const LoadingMessage = styled.div`
+  color: var(--fgColor-muted, #656d76);
+  margin-top: 12px;
+`;
+
+const FooterText = styled.span`
+  color: var(--fgColor-muted, #656d76);
+  font-size: 12px;
+`;
+
+const HeaderTitle = styled.a`
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--header-fgColor-default, #fff);
+  text-decoration: none;
+  &:hover {
+    text-decoration: none;
+  }
+`;
+
+const HeaderSubtitle = styled.span`
+  color: var(--header-fgColor-default, #fff);
+  opacity: 0.7;
+  margin-left: 8px;
+`;
+
+const ThemeButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--header-fgColor-default, #fff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
+const RepoSelectHint = styled.div`
+  color: var(--fgColor-muted, #656d76);
+  font-style: italic;
+  margin-top: 8px;
+  font-size: 14px;
 `;
 
 const RepoViewContainer = styled.div`
@@ -258,7 +310,8 @@ function App() {
         setLoadingRepos(true);
         setSelectedRepo('');
         try {
-          const result = await api.getRepositoriesForOrg(selectedOrg, token, enterpriseUrl);
+          const github = getGitHubService(token, enterpriseUrl);
+          const result = await github.getRepositoriesForOrg(selectedOrg);
           setRepositories(result.repositories);
         } catch (error) {
           console.error('Failed to load repositories:', error);
@@ -356,7 +409,7 @@ function App() {
       return (
         <WelcomeBox>
           <WelcomeTitle>Welcome to GitHub Apps Dashboard</WelcomeTitle>
-          <Text sx={{ color: 'fg.muted' }}>Connect to your GitHub Enterprise to view installed apps across organizations.</Text>
+          <MutedText>Connect to your GitHub Enterprise to view installed apps across organizations.</MutedText>
         </WelcomeBox>
       );
     }
@@ -369,7 +422,7 @@ function App() {
           ) : (
             <>
               <Spinner size="large" />
-              <Text as="div" sx={{ color: 'fg.muted', mt: 3 }}>Loading data from GitHub...</Text>
+              <LoadingMessage>Loading data from GitHub...</LoadingMessage>
             </>
           )}
         </WelcomeBox>
@@ -423,7 +476,7 @@ function App() {
           })}
           {installationsByApp.size === 0 && (
             <EmptyState>
-              <Text sx={{ color: 'fg.muted' }}>No apps found matching your filters.</Text>
+              <MutedText>No apps found matching your filters.</MutedText>
             </EmptyState>
           )}
         </div>
@@ -452,7 +505,7 @@ function App() {
           })}
           {filteredOrganizations.length === 0 && (
             <EmptyState>
-              <Text sx={{ color: 'fg.muted' }}>No organizations found matching your filters.</Text>
+              <MutedText>No organizations found matching your filters.</MutedText>
             </EmptyState>
           )}
         </div>
@@ -478,11 +531,11 @@ function App() {
           {loadingRepos ? (
             <LoadingRow>
               <Spinner size="small" />
-              <Text sx={{ color: 'fg.muted' }}>Loading repositories...</Text>
+              <MutedText>Loading repositories...</MutedText>
             </LoadingRow>
           ) : repositories.length === 0 ? (
             <EmptyState>
-              <Text sx={{ color: 'fg.muted' }}>No repositories found for this organization.</Text>
+              <MutedText>No repositories found for this organization.</MutedText>
             </EmptyState>
           ) : (
             <RepoViewContainer>
@@ -509,7 +562,7 @@ function App() {
               <RepoDetails>
                 {!selectedRepo ? (
                   <EmptyState>
-                    <Text sx={{ color: 'fg.muted' }}>Select a repository to see installed apps</Text>
+                    <MutedText>Select a repository to see installed apps</MutedText>
                   </EmptyState>
                 ) : selectedRepository && (
                   <>
@@ -546,9 +599,9 @@ function App() {
                           );
                         })}
                     </AppsList>
-                    <Text as="div" sx={{ mt: 2, fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
+                    <RepoSelectHint>
                       Note: Apps with "Selected repos" access require individual repository checks.
-                    </Text>
+                    </RepoSelectHint>
                   </>
                 )}
               </RepoDetails>
@@ -568,24 +621,23 @@ function App() {
     <Container>
       <Header>
         <Header.Item>
-          <Header.Link href="#" sx={{ fontSize: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <HeaderTitle href="#">
             <MarkGithubIcon size={32} />
             GitHub Apps Dashboard
-          </Header.Link>
+          </HeaderTitle>
         </Header.Item>
         <Header.Item full>
-          <Text sx={{ color: 'header.text', opacity: 0.7, ml: 2 }}>
+          <HeaderSubtitle>
             View and manage GitHub Apps across your enterprise organizations
-          </Text>
+          </HeaderSubtitle>
         </Header.Item>
         <Header.Item>
-          <IconButton
-            icon={isDark ? SunIcon : MoonIcon}
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          <ThemeButton
             onClick={() => setColorMode(isDark ? 'day' : 'night')}
-            variant="invisible"
-            sx={{ color: 'header.text' }}
-          />
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+          </ThemeButton>
         </Header.Item>
       </Header>
 
@@ -619,7 +671,7 @@ function App() {
       </Main>
 
       <Footer>
-        <Text sx={{ color: 'fg.muted', fontSize: 0 }}>
+        <FooterText>
           GitHub Apps Dashboard{' | '}View installations across your GitHub Enterprise{' | '}Made by{' '}
           <a href="https://github.com/gateixeira" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
             @gateixeira
@@ -628,7 +680,7 @@ function App() {
           <a href="https://github.com/gateixeira/github-apps-dashboard" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
             View on GitHub
           </a>
-        </Text>
+        </FooterText>
       </Footer>
     </Container>
   );

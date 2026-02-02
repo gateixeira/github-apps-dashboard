@@ -5,7 +5,6 @@ import {
   Label,
   Link,
   CounterLabel,
-  Text,
 } from '@primer/react';
 import type { Repository, AppInstallation, GitHubApp } from '../types';
 
@@ -83,6 +82,29 @@ const SectionHeader = styled.h4`
   margin: 0 0 8px 0;
 `;
 
+const RepoDescription = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+`;
+
+const AppName = styled.span`
+  font-weight: bold;
+  display: block;
+`;
+
+const AppSlugLink = styled.a`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+`;
+
+const AppOwner = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  display: block;
+`;
+
 export const RepoCard: FC<RepoCardProps> = ({ 
   repository, 
   installations,
@@ -104,7 +126,7 @@ export const RepoCard: FC<RepoCardProps> = ({
               </Link>
             </CardTitle>
             {repository.description && (
-              <Text sx={{ fontSize: 0, color: 'fg.muted' }}>{repository.description}</Text>
+              <RepoDescription>{repository.description}</RepoDescription>
             )}
           </div>
         </CardHeaderInfo>
@@ -126,10 +148,10 @@ export const RepoCard: FC<RepoCardProps> = ({
                     <Avatar src={app.owner.avatar_url} size={32} square alt={app.name} />
                   )}
                   <div style={{ flex: 1 }}>
-                    <Text sx={{ fontWeight: 'bold', display: 'block' }}>{app?.name || inst.app_slug}</Text>
-                    <Link href={`https://github.com/apps/${inst.app_slug}`} target="_blank" sx={{ fontSize: 0, color: 'fg.muted' }}>@{inst.app_slug}</Link>
+                    <AppName>{app?.name || inst.app_slug}</AppName>
+                    <AppSlugLink href={`https://github.com/apps/${inst.app_slug}`} target="_blank">@{inst.app_slug}</AppSlugLink>
                     {app?.owner && (
-                      <Text sx={{ fontSize: 0, color: 'fg.muted', display: 'block' }}>by {app.owner.login}</Text>
+                      <AppOwner>by {app.owner.login}</AppOwner>
                     )}
                   </div>
                   <AppLabels>

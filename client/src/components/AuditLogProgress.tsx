@@ -1,5 +1,4 @@
-import React from 'react';
-import { Text, ProgressBar } from '@primer/react';
+import { ProgressBar } from '@primer/react';
 import { SearchIcon, CheckCircleIcon, SyncIcon } from '@primer/octicons-react';
 import styled, { keyframes } from 'styled-components';
 import type { UsageProgress } from '../hooks/useAppUsage';
@@ -70,8 +69,24 @@ const StatLabel = styled.span`
   margin-top: 4px;
 `;
 
-const Message = styled(Text)`
+const Title = styled.div`
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+`;
+
+const Message = styled.div`
+  font-size: 14px;
+  color: var(--fgColor-muted, #656d76);
+  margin-bottom: 12px;
+  text-align: center;
   animation: ${pulse} 2s ease-in-out infinite;
+`;
+
+const OrgInfo = styled.div`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  margin-bottom: 8px;
 `;
 
 const ProgressBarWrapper = styled.div`
@@ -111,11 +126,11 @@ export function AuditLogProgress({ progress, totalOrgs = 1, currentOrgIndex = 0 
         {getIcon()}
       </IconWrapper>
       
-      <Text as="div" sx={{ fontSize: 2, fontWeight: 'semibold', mb: 1 }}>
+      <Title>
         Scanning Audit Logs for apps activity
-      </Text>
+      </Title>
       
-      <Message as="div" sx={{ fontSize: 1, color: 'fg.muted', mb: 3, textAlign: 'center' }}>
+      <Message>
         {progress.message}
       </Message>
 
@@ -128,9 +143,9 @@ export function AuditLogProgress({ progress, totalOrgs = 1, currentOrgIndex = 0 
       </ProgressBarWrapper>
 
       {totalOrgs > 1 && (
-        <Text as="div" sx={{ fontSize: 0, color: 'fg.muted', mb: 2 }}>
+        <OrgInfo>
           Organization {currentOrgIndex + 1} of {totalOrgs}: <strong>{progress.org}</strong>
-        </Text>
+        </OrgInfo>
       )}
 
       <StatsGrid>

@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
     "@primer/octicons-react": "^19.21.1",
     "@primer/react": "^38.6.2",
     "@types/styled-components": "^5.1.36",

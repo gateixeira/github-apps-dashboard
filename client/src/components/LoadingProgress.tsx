@@ -1,5 +1,4 @@
-import React from 'react';
-import { Text, ProgressBar } from '@primer/react';
+import { ProgressBar } from '@primer/react';
 import { OrganizationIcon, AppsIcon, SyncIcon } from '@primer/octicons-react';
 import styled, { keyframes } from 'styled-components';
 import type { LoadingProgress as LoadingProgressType } from '../hooks/useDashboardData';
@@ -45,7 +44,10 @@ const Title = styled.h2`
   color: var(--fgColor-default);
 `;
 
-const Message = styled(Text)`
+const Message = styled.div`
+  font-size: 14px;
+  color: var(--fgColor-muted, #656d76);
+  text-align: center;
   animation: ${pulse} 2s ease-in-out infinite;
   margin-bottom: 24px;
 `;
@@ -147,7 +149,7 @@ export function LoadingProgress({ progress }: Props) {
       
       <Title>Loading Dashboard</Title>
       
-      <Message as="div" sx={{ fontSize: 1, color: 'fg.muted', textAlign: 'center' }}>
+      <Message>
         {progress.message}
       </Message>
 

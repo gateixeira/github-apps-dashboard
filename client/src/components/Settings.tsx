@@ -7,11 +7,10 @@ import {
   Button,
   IconButton,
   Flash,
-  Text,
 } from '@primer/react';
 import { SyncIcon } from '@primer/octicons-react';
 import type { Organization } from '../types';
-import { api } from '../services/api';
+import { getGitHubService } from '../services/github';
 
 const fadeOut = keyframes`
   from {
@@ -82,6 +81,14 @@ const FlashCell = styled.div`
   /* Flash message in caption row */
 `;
 
+const RequiredMarker = styled.span`
+  color: var(--fgColor-danger, #cf222e);
+`;
+
+const WarningText = styled.span`
+  color: var(--fgColor-attention, #9a6700);
+`;
+
 interface SettingsProps {
   token: string;
   enterpriseUrl: string;
@@ -134,7 +141,8 @@ export const Settings: FC<SettingsProps> = ({
     if (!token) return;
     setLoadingOrgs(true);
     try {
-      const orgs = await api.getOrganizations(token, enterpriseUrl || undefined);
+      const github = getGitHubService(token, enterpriseUrl || undefined);
+      const orgs = await github.getOrganizations();
       setOrganizations(orgs);
     } catch (error) {
       console.error('Failed to fetch organizations:', error);
@@ -151,7 +159,7 @@ export const Settings: FC<SettingsProps> = ({
         {/* Row 1: Headers */}
         <HeaderCell>GitHub Enterprise URL (optional)</HeaderCell>
         <HeaderCell>Personal Access Token</HeaderCell>
-        <HeaderCell>Organization <Text sx={{ color: 'danger.fg' }}>*</Text></HeaderCell>
+        <HeaderCell>Organization <RequiredMarker>*</RequiredMarker></HeaderCell>
         <ButtonHeader />
 
         {/* Row 2: Inputs */}
@@ -208,7 +216,7 @@ export const Settings: FC<SettingsProps> = ({
 </CaptionCell>
         <CaptionCell>
           {!selectedOrg && organizations.length > 0 ? (
-            <Text sx={{ color: 'attention.fg' }}>⚠ Organization required</Text>
+            <WarningText>⚠ Organization required</WarningText>
           ) : (
             'Click refresh to load organizations'
           )}

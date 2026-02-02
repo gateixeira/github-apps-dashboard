@@ -5,7 +5,6 @@ import {
   Avatar,
   Label,
   CounterLabel,
-  Text,
   Link,
 } from '@primer/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
@@ -160,6 +159,16 @@ const AppsSectionTitle = styled.h4`
   margin: 0;
 `;
 
+const OrgDescription = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+`;
+
+const NoAppsMessage = styled.span`
+  color: var(--fgColor-muted, #656d76);
+  font-style: italic;
+`;
+
 export const OrgCard: FC<OrgCardProps> = ({ 
   organization, 
   installations, 
@@ -184,7 +193,7 @@ export const OrgCard: FC<OrgCardProps> = ({
           <div>
             <CardTitle>{organization.login}</CardTitle>
             {organization.description && (
-              <Text sx={{ fontSize: 0, color: 'fg.muted' }}>{organization.description}</Text>
+              <OrgDescription>{organization.description}</OrgDescription>
             )}
           </div>
         </CardHeaderInfo>
@@ -210,7 +219,7 @@ export const OrgCard: FC<OrgCardProps> = ({
               )}
             </AppsSectionHeader>
             {installations.length === 0 ? (
-              <Text sx={{ color: 'fg.muted', fontStyle: 'italic' }}>No apps installed in this organization</Text>
+              <NoAppsMessage>No apps installed in this organization</NoAppsMessage>
             ) : (
               <AppsGrid>
                 {installations.map(inst => {

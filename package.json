@@ -1,17 +1,11 @@
 {
   "name": "github-apps-dashboard",
   "version": "1.0.0",
-  "description": "A web application to view and manage GitHub Apps installed across your GitHub Enterprise organizations",
-  "main": "index.js",
+  "description": "A client-only web application to view and manage GitHub Apps installed across your GitHub Enterprise organizations",
   "scripts": {
-    "server": "ts-node src/server/index.ts",
-    "server:dev": "ts-node-dev --respawn src/server/index.ts",
-    "client": "cd client && npm run dev",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "build:server": "tsc",
-    "build:client": "cd client && npm run build",
-    "build": "npm run build:server && npm run build:client",
-    "start": "node dist/server/index.js"
+    "dev": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "preview": "cd client && npm run preview"
   },
   "keywords": [
     "github",
@@ -34,20 +28,5 @@
   "homepage": "https://github.com/gateixeira/github-apps-dashboard#readme",
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "@octokit/rest": "^22.0.1",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^25.0.3",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
-  },
-  "devDependencies": {
-    "concurrently": "^9.2.1",
-    "ts-node-dev": "^2.0.0"
   }
 }

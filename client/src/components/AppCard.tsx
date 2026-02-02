@@ -8,11 +8,10 @@ import {
   Link,
   Spinner,
   CounterLabel,
-  Text,
 } from '@primer/react';
 import { ChevronDownIcon, ChevronUpIcon, ClockIcon, AlertIcon, CheckCircleIcon, RepoIcon } from '@primer/octicons-react';
 import type { GitHubApp, AppInstallation, Repository, AppUsageInfo } from '../types';
-import { api } from '../services/api';
+import { getGitHubService } from '../services/github';
 
 interface AppCardProps {
   app: GitHubApp;
@@ -152,6 +151,62 @@ const MarkdownContent = styled.div`
   strong { font-weight: 600; }
 `;
 
+const AppSlugLink = styled.a`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+`;
+
+const OwnerText = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  margin-left: 4px;
+`;
+
+const InstallationsCount = styled.span`
+  font-size: 14px;
+`;
+
+const InstallationsCountMuted = styled.span`
+  font-size: 14px;
+  color: var(--fgColor-muted, #656d76);
+`;
+
+const OrgName = styled.span`
+  font-weight: bold;
+`;
+
+const RepoInfo = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const RepoLoadingText = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+`;
+
+const RepoLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+`;
+
+const MoreReposText = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  font-style: italic;
+`;
+
+const AllReposMessage = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  font-style: italic;
+`;
+
 const formatLastActivity = (dateStr: string | null): string => {
   if (!dateStr) return 'No activity found';
   const date = new Date(dateStr);
@@ -184,13 +239,14 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
 
     setLoadingRepos(prev => new Set(prev).add(installationId));
     try {
+      const github = getGitHubService(token, enterpriseUrl);
       const allRepos: Repository[] = [];
       let totalCount = 0;
       let page = 1;
       
       // Fetch up to MAX_PAGES_TO_FETCH pages to get a good sample
       while (page <= MAX_PAGES_TO_FETCH) {
-        const result = await api.getInstallationRepositories(installationId, token, enterpriseUrl, page, 30);
+        const result = await github.getInstallationRepositories(installationId, page, 30);
         allRepos.push(...result.repositories);
         totalCount = result.totalCount || allRepos.length;
         
@@ -232,9 +288,9 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
           )}
           <div>
             <CardTitle>{app.name}</CardTitle>
-            <Link href={`${enterpriseUrl || 'https://github.com'}/apps/${app.slug}`} target="_blank" sx={{ fontSize: 0, color: 'fg.muted' }}>@{app.slug}</Link>
+            <AppSlugLink href={`${enterpriseUrl || 'https://github.com'}/apps/${app.slug}`} target="_blank">@{app.slug}</AppSlugLink>
             {app.owner && (
-              <Text sx={{ fontSize: 0, color: 'fg.muted', ml: 1 }}> by {app.owner.login}</Text>
+              <OwnerText> by {app.owner.login}</OwnerText>
             )}
           </div>
         </CardHeaderInfo>
@@ -264,13 +320,13 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
             <Section>
               <SectionHeader>Usage Activity</SectionHeader>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <Text sx={{ fontSize: 1 }}>
+                <InstallationsCount>
                   <strong>Last activity:</strong> {formatLastActivity(usageInfo.lastActivityAt)}
-                </Text>
+                </InstallationsCount>
                 {usageInfo.activityCount > 0 && (
-                  <Text sx={{ fontSize: 1, color: 'fg.muted' }}>
+                  <InstallationsCountMuted>
                     ({usageInfo.activityCount} actions in audit log)
-                  </Text>
+                  </InstallationsCountMuted>
                 )}
               </div>
             </Section>
@@ -288,7 +344,7 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
                   <InstallationHeader>
                     <Avatar src={inst.account.avatar_url} size={32} alt={inst.account.login} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Text sx={{ fontWeight: 'bold' }}>{inst.account.login}</Text>
+                      <OrgName>{inst.account.login}</OrgName>
                       <Label>{inst.account.type}</Label>
                     </div>
                     <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
@@ -299,34 +355,36 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
                   
                   <div>
                     {inst.repository_selection === 'all' ? (
-                      <Text sx={{ fontSize: 0, color: 'fg.muted', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <RepoInfo>
                         <RepoIcon size={14} />
                         This app has access to all repositories in {inst.account.login}
-                      </Text>
+                      </RepoInfo>
                     ) : loadingRepos.has(inst.id) ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Spinner size="small" />
-                        <Text sx={{ fontSize: 0, color: 'fg.muted' }}>Loading repositories...</Text>
+                        <RepoLoadingText>Loading repositories...</RepoLoadingText>
                       </div>
                     ) : data ? (
                       <LabelGroup>
                         {reposToShow.map(repo => (
-                          <Label key={repo.id} sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                            <Link href={repo.html_url} target="_blank">
-                              {repo.name}
-                            </Link>
-                            {repo.private && <span style={{ marginLeft: '4px' }}><Label size="small" variant="danger">Private</Label></span>}
-                          </Label>
+                          <RepoLabel key={repo.id}>
+                            <Label>
+                              <Link href={repo.html_url} target="_blank">
+                                {repo.name}
+                              </Link>
+                              {repo.private && <span style={{ marginLeft: '4px' }}><Label size="small" variant="danger">Private</Label></span>}
+                            </Label>
+                          </RepoLabel>
                         ))}
                         {remainingCount > 0 && (
-                          <Text sx={{ fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
+                          <MoreReposText>
                             ...and {remainingCount} more {remainingCount === 1 ? 'repository' : 'repositories'}
-                          </Text>
+                          </MoreReposText>
                         )}
                         {data.repositories.length === 0 && (
-                          <Text sx={{ fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
+                          <AllReposMessage>
                             No repositories accessible
-                          </Text>
+                          </AllReposMessage>
                         )}
                       </LabelGroup>
                     ) : null}
