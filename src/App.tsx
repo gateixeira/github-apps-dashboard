@@ -69,9 +69,57 @@ const SectionTitle = styled.h2`
 `;
 
 const WelcomeTitle = styled.h3`
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0 0 16px 0;
+`;
+
+const WelcomeDescription = styled.p`
+  font-size: 14px;
+  color: var(--fgColor-muted, #656d76);
+  margin: 0 0 12px 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+`;
+
+const FeatureList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 24px auto;
+  max-width: 600px;
+  text-align: left;
+`;
+
+const FeatureItem = styled.li`
+  font-size: 14px;
+  color: var(--fgColor-default, #1f2328);
+  padding: 10px 0;
+  padding-left: 28px;
+  position: relative;
+  line-height: 1.5;
+  
+  &::before {
+    content: "✓";
+    color: var(--fgColor-success, #1a7f37);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+  }
+`;
+
+const FeatureTitle = styled.strong`
+  color: var(--fgColor-default, #1f2328);
+`;
+
+const RepoLink = styled.a`
+  color: var(--fgColor-accent, #0969da);
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const Footer = styled.footer`
@@ -419,7 +467,27 @@ function App() {
       return (
         <WelcomeBox>
           <WelcomeTitle>Welcome to GitHub Apps Dashboard</WelcomeTitle>
-          <MutedText>Connect to your GitHub Enterprise to view installed apps across organizations.</MutedText>
+          <WelcomeDescription>
+            View and analyze GitHub App installations across your organizations. 
+            Identify inactive apps, check installation scopes, and understand your GitHub Apps landscape.
+          </WelcomeDescription>
+          
+          <FeatureList>
+            <FeatureItem>
+              <FeatureTitle>100% Client-Only:</FeatureTitle> Your token never leaves your browser. All API calls go directly to GitHub.
+            </FeatureItem>
+            <FeatureItem>
+              <FeatureTitle>Privacy First:</FeatureTitle> No server, no storage, no tracking. Your credentials are only used in-memory during your session.
+            </FeatureItem>
+            <FeatureItem>
+              <FeatureTitle>Rate Limit Aware:</FeatureTitle> Respects GitHub API rate limits associated with your Personal Access Token.
+            </FeatureItem>
+            <FeatureItem>
+              <FeatureTitle>Open Source:</FeatureTitle> Fully transparent and auditable. View the source on <RepoLink href="https://github.com/gateixeira/github-apps-dashboard" target="_blank" rel="noopener noreferrer">GitHub</RepoLink>.
+            </FeatureItem>
+          </FeatureList>
+          
+          <MutedText>Enter your token above and select an organization to get started.</MutedText>
         </WelcomeBox>
       );
     }
