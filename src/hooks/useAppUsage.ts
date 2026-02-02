@@ -15,7 +15,6 @@ interface UseAppUsageResult {
   usage: Map<string, AppUsageInfo>;
   loading: boolean;
   error: string | null;
-  inactiveDays: number;
   configLoaded: boolean;
   progress: UsageProgress | null;
   loadUsage: (orgs: string[], appSlugs: string[]) => Promise<void>;
@@ -26,12 +25,12 @@ const DEFAULT_INACTIVE_DAYS = 90;
 
 export function useAppUsage(
   token: string,
-  enterpriseUrl?: string
+  enterpriseUrl?: string,
+  inactiveDays: number = DEFAULT_INACTIVE_DAYS
 ): UseAppUsageResult {
   const [usage, setUsage] = useState<Map<string, AppUsageInfo>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inactiveDays] = useState(DEFAULT_INACTIVE_DAYS);
   const [progress, setProgress] = useState<UsageProgress | null>(null);
   const inactiveDaysRef = useRef(inactiveDays);
   const abortedRef = useRef(false);
@@ -124,7 +123,6 @@ export function useAppUsage(
     usage,
     loading,
     error,
-    inactiveDays,
     configLoaded: true, // Always loaded since we don't fetch from server
     progress,
     loadUsage,

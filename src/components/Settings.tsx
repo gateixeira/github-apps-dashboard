@@ -45,7 +45,7 @@ const SectionTitle = styled.h2`
 
 const FieldsTable = styled.div`
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(200px, 1fr) minmax(180px, auto) auto;
+  grid-template-columns: minmax(260px, 1fr) minmax(200px, 1fr) minmax(180px, auto) minmax(100px, auto) auto;
   grid-template-rows: auto auto auto;
   gap: 8px 24px;
   align-items: start;
@@ -99,6 +99,8 @@ interface SettingsProps {
   loading: boolean;
   selectedOrg: string;
   onSelectedOrgChange: (org: string) => void;
+  inactiveDays: number;
+  onInactiveDaysChange: (days: number) => void;
 }
 
 export const Settings: FC<SettingsProps> = ({
@@ -111,6 +113,8 @@ export const Settings: FC<SettingsProps> = ({
   loading,
   selectedOrg,
   onSelectedOrgChange,
+  inactiveDays,
+  onInactiveDaysChange,
 }) => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(false);
@@ -160,6 +164,7 @@ export const Settings: FC<SettingsProps> = ({
         <HeaderCell>GitHub Enterprise URL (optional)</HeaderCell>
         <HeaderCell>Personal Access Token</HeaderCell>
         <HeaderCell>Organization <RequiredMarker>*</RequiredMarker></HeaderCell>
+        <HeaderCell>Inactivity Period</HeaderCell>
         <ButtonHeader />
 
         {/* Row 2: Inputs */}
@@ -201,6 +206,17 @@ export const Settings: FC<SettingsProps> = ({
           />
         </InputCell>
         <InputCell>
+          <TextInput
+            type="number"
+            value={inactiveDays.toString()}
+            onChange={(e) => onInactiveDaysChange(parseInt(e.target.value) || 90)}
+            min={1}
+            max={365}
+            style={{ width: '80px' }}
+          />
+          <span>days</span>
+        </InputCell>
+        <InputCell>
           <Button
             variant="primary"
             onClick={onConnect}
@@ -221,6 +237,7 @@ export const Settings: FC<SettingsProps> = ({
             'Click refresh to load organizations'
           )}
         </CaptionCell>
+        <CaptionCell>For audit log usage detection</CaptionCell>
         <FlashCell />
       </FieldsTable>
 

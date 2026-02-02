@@ -58,7 +58,6 @@ cd github-apps-dashboard
 
 ```bash
 npm install
-cd client && npm install && cd ..
 ```
 
 ### 3. Start the development server
@@ -81,7 +80,7 @@ Since this is a **client-only application**, you can deploy it as static files t
 npm run build
 ```
 
-The built files will be in `client/dist/`. These can be deployed to:
+The built files will be in `dist/`. These can be deployed to:
 
 - **GitHub Pages**
 - **Netlify**
@@ -94,8 +93,8 @@ The built files will be in `client/dist/`. These can be deployed to:
 
 1. Push your code to GitHub
 2. Connect your repository to Netlify
-3. Set build command: `cd client && npm run build`
-4. Set publish directory: `client/dist`
+3. Set build command: `npm run build`
+4. Set publish directory: `dist`
 5. Deploy!
 
 ### Example: Deploy to GitHub Pages
@@ -105,7 +104,7 @@ The built files will be in `client/dist/`. These can be deployed to:
 npm run build
 
 # Deploy to gh-pages branch
-npx gh-pages -d client/dist
+npx gh-pages -d dist
 ```
 
 ## 📖 Usage
@@ -163,12 +162,13 @@ This is a **client-only application** - there is no backend server. All GitHub A
 
 ```
 github-apps-dashboard/
-├── client/
-│   └── src/
-│       ├── components/   # React components
-│       ├── hooks/        # Custom React hooks
-│       ├── services/     # GitHub API client (Octokit wrapper)
-│       └── types/        # TypeScript types
+├── src/
+│   ├── components/   # React components
+│   ├── hooks/        # Custom React hooks
+│   ├── services/     # GitHub API client (Octokit wrapper)
+│   └── types/        # TypeScript types
+├── public/           # Static assets
+├── index.html        # Entry HTML file
 ├── package.json
 └── README.md
 ```

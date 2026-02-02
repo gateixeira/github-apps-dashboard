@@ -253,6 +253,7 @@ function App() {
   const [enterpriseUrl, setEnterpriseUrl] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState('');
+  const [inactiveDays, setInactiveDays] = useState(90);
   const [filters, setFilters] = useState<FilterState>({
     appOwner: '',
     appSlug: '',
@@ -281,10 +282,9 @@ function App() {
     loading: usageLoading,
     loadUsage,
     getUsageForApp,
-    inactiveDays,
     configLoaded,
     progress: usageProgress,
-  } = useAppUsage(isConnected ? token : '', enterpriseUrl);
+  } = useAppUsage(isConnected ? token : '', enterpriseUrl, inactiveDays);
 
   // Load app usage when apps are loaded and config is ready
   useEffect(() => {
@@ -653,6 +653,8 @@ function App() {
             loading={loading}
             selectedOrg={selectedOrg}
             onSelectedOrgChange={setSelectedOrg}
+            inactiveDays={inactiveDays}
+            onInactiveDaysChange={setInactiveDays}
           />
 
           {isConnected && !loading && (
