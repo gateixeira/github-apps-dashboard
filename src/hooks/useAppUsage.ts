@@ -32,13 +32,7 @@ export function useAppUsage(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<UsageProgress | null>(null);
-  const inactiveDaysRef = useRef(inactiveDays);
   const abortedRef = useRef(false);
-
-  // Keep ref in sync
-  useEffect(() => {
-    inactiveDaysRef.current = inactiveDays;
-  }, [inactiveDays]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -57,7 +51,6 @@ export function useAppUsage(
 
     const github = getGitHubService(token, enterpriseUrl);
     const usageMap = new Map<string, AppUsageInfo>();
-    const days = inactiveDaysRef.current;
 
     // Process orgs sequentially
     for (const org of orgs) {
@@ -67,7 +60,7 @@ export function useAppUsage(
         const orgUsage = await github.getAppUsageFromAuditLogs(
           org,
           appSlugs,
-          days,
+          inactiveDays,
           (progressEvent: AuditLogProgress) => {
             if (abortedRef.current) return;
             setProgress({
@@ -113,7 +106,7 @@ export function useAppUsage(
     setUsage(usageMap);
     setLoading(false);
     setProgress(null);
-  }, [token, enterpriseUrl]);
+  }, [token, enterpriseUrl, inactiveDays]);
 
   const getUsageForApp = useCallback((appSlug: string): AppUsageInfo | undefined => {
     return usage.get(appSlug);

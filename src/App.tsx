@@ -286,17 +286,27 @@ function App() {
     progress: usageProgress,
   } = useAppUsage(isConnected ? token : '', enterpriseUrl, inactiveDays);
 
-  // Load app usage when apps are loaded and config is ready
+  // Track a refresh counter to force re-fetching usage data on Reconnect
+  const [usageRefreshKey, setUsageRefreshKey] = useState(0);
+
+  // Load app usage when apps are loaded and config is ready, or when refresh is triggered
   useEffect(() => {
     if (apps.size > 0 && organizations.length > 0 && configLoaded) {
       const appSlugs = Array.from(apps.keys());
       const orgLogins = organizations.map(o => o.login);
       loadUsage(orgLogins, appSlugs);
     }
-  }, [apps, organizations, loadUsage, configLoaded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apps, organizations, configLoaded, usageRefreshKey]);
 
   const handleConnect = async () => {
-    setIsConnected(true);
+    if (isConnected) {
+      // Trigger a full refresh of data and usage
+      refreshData();
+      setUsageRefreshKey(prev => prev + 1);
+    } else {
+      setIsConnected(true);
+    }
   };
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
