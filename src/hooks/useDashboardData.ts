@@ -20,6 +20,14 @@ export interface LoadingProgress {
   repositoriesLoaded: number;
 }
 
+export interface BackgroundProgress {
+  isLoading: boolean;
+  pagesLoaded: number;
+  totalPages: number;
+  installationsLoaded: number;
+  appsLoaded: number;
+}
+
 interface UseDashboardDataResult {
   organizations: Organization[];
   installations: AppInstallation[];
@@ -27,6 +35,7 @@ interface UseDashboardDataResult {
   repositories: Map<number, Repository[]>;
   loading: boolean;
   loadingProgress: LoadingProgress | null;
+  backgroundProgress: BackgroundProgress | null;
   error: string | null;
   pagination: PaginationInfo;
   setPage: (page: number) => void;
@@ -43,6 +52,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
   const [repositories, setRepositories] = useState<Map<number, Repository[]>>(new Map());
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<LoadingProgress | null>(null);
+  const [backgroundProgress, setBackgroundProgress] = useState<BackgroundProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -51,13 +61,14 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
     totalPages: 0,
   });
 
-  const loadData = useCallback(async (page: number) => {
+  const loadData = useCallback(async () => {
     if (!token) return;
 
     const github = getGitHubService(token, enterpriseUrl);
 
     setLoading(true);
     setError(null);
+    setBackgroundProgress(null);
     setLoadingProgress({
       phase: 'organizations',
       message: 'Fetching organizations...',
@@ -85,10 +96,15 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         repositoriesLoaded: 0,
       });
 
-      const allInstallations: AppInstallation[] = [];
+      // Track installations and apps across all orgs
+      let allInstallations: AppInstallation[] = [];
       const appsMap = new Map<string, GitHubApp>();
       let totalCount = 0;
+      
+      // Track pagination info per org for background loading
+      const orgPagination: Map<string, { totalCount: number; pagesLoaded: number; totalPages: number }> = new Map();
 
+      // PHASE 1: Load first page of each org (initial fast load)
       for (let i = 0; i < orgsToProcess.length; i++) {
         const org = orgsToProcess[i];
         
@@ -104,9 +120,13 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         });
 
         try {
-          const result = await github.getAppInstallationsForOrg(org.login, page, PER_PAGE);
+          const result = await github.getAppInstallationsForOrg(org.login, 1, PER_PAGE);
           allInstallations.push(...result.installations);
           totalCount += result.totalCount;
+          
+          // Track how many pages this org has
+          const totalPages = Math.ceil(result.totalCount / PER_PAGE);
+          orgPagination.set(org.login, { totalCount: result.totalCount, pagesLoaded: 1, totalPages });
 
           for (const inst of result.installations) {
             if (!appsMap.has(inst.app_slug)) {
@@ -132,10 +152,11 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         }
       }
 
+      // Update state with first page data
       setInstallations(allInstallations);
       setApps(appsMap);
       setPagination({
-        page,
+        page: 1,
         perPage: PER_PAGE,
         totalCount,
         totalPages: Math.ceil(totalCount / PER_PAGE),
@@ -150,21 +171,87 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         appsLoaded: appsMap.size,
         repositoriesLoaded: 0,
       });
+      
+      // End initial loading - UI is now visible
+      setLoading(false);
+      setLoadingProgress(null);
+      
+      // PHASE 2: Background loading of remaining pages
+      const orgsNeedingMorePages = Array.from(orgPagination.entries())
+        .filter(([, info]) => info.totalPages > 1);
+      
+      if (orgsNeedingMorePages.length > 0) {
+        const totalPagesOverall = orgsNeedingMorePages.reduce((sum, [, info]) => sum + info.totalPages, 0);
+        let pagesLoadedSoFar = orgsNeedingMorePages.length; // Already loaded page 1 of each
+        
+        setBackgroundProgress({
+          isLoading: true,
+          pagesLoaded: pagesLoadedSoFar,
+          totalPages: totalPagesOverall,
+          installationsLoaded: allInstallations.length,
+          appsLoaded: appsMap.size,
+        });
+        
+        // Load remaining pages for each org
+        for (const [orgLogin, info] of orgsNeedingMorePages) {
+          for (let page = 2; page <= info.totalPages; page++) {
+            try {
+              const result = await github.getAppInstallationsForOrg(orgLogin, page, PER_PAGE);
+              allInstallations = [...allInstallations, ...result.installations];
+              
+              // Load app details for new installations
+              for (const inst of result.installations) {
+                if (!appsMap.has(inst.app_slug)) {
+                  const app = await github.getApp(inst.app_slug);
+                  if (app) {
+                    appsMap.set(inst.app_slug, app);
+                  }
+                }
+              }
+              
+              pagesLoadedSoFar++;
+              
+              // Update state progressively
+              setInstallations([...allInstallations]);
+              setApps(new Map(appsMap));
+              setBackgroundProgress({
+                isLoading: true,
+                pagesLoaded: pagesLoadedSoFar,
+                totalPages: totalPagesOverall,
+                installationsLoaded: allInstallations.length,
+                appsLoaded: appsMap.size,
+              });
+            } catch (e) {
+              console.error(`Error loading page ${page} for ${orgLogin}:`, e);
+            }
+          }
+        }
+        
+        // Background loading complete
+        setBackgroundProgress({
+          isLoading: false,
+          pagesLoaded: totalPagesOverall,
+          totalPages: totalPagesOverall,
+          installationsLoaded: allInstallations.length,
+          appsLoaded: appsMap.size,
+        });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data');
-    } finally {
       setLoading(false);
       setLoadingProgress(null);
     }
   }, [token, enterpriseUrl, filterOrg]);
 
   const refreshData = useCallback(async () => {
-    await loadData(1);
+    await loadData();
   }, [loadData]);
 
-  const setPage = useCallback((page: number) => {
-    loadData(page);
-  }, [loadData]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setPage = useCallback((_page: number) => {
+    // Pagination is now handled by progressive loading, not explicit page changes
+    // This function is kept for API compatibility but no longer triggers page loads
+  }, []);
 
   const loadRepositoriesForInstallation = useCallback(async (installationId: number, page: number = 1) => {
     if (!token) return;
@@ -180,7 +267,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
 
   useEffect(() => {
     if (token) {
-      loadData(1);
+      loadData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, enterpriseUrl, filterOrg]);
@@ -192,6 +279,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
     repositories,
     loading,
     loadingProgress,
+    backgroundProgress,
     error,
     pagination,
     setPage,

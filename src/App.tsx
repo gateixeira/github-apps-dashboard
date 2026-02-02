@@ -9,6 +9,7 @@ import {
   Avatar,
   Link,
   useTheme,
+  ProgressBar,
 } from '@primer/react';
 import { MarkGithubIcon, LockIcon, SunIcon, MoonIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
@@ -301,6 +302,27 @@ const ShowMoreContainer = styled.div`
   text-align: center;
 `;
 
+const BackgroundLoadingBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bgColor-accent-muted, #ddf4ff);
+  border-radius: 6px;
+  margin-bottom: 16px;
+`;
+
+const BackgroundLoadingText = styled.span`
+  font-size: 13px;
+  color: var(--fgColor-accent, #0969da);
+  white-space: nowrap;
+`;
+
+const BackgroundProgressWrapper = styled.div`
+  flex: 1;
+  min-width: 100px;
+`;
+
 function App() {
   const [token, setToken] = useState('');
   const [enterpriseUrl, setEnterpriseUrl] = useState('');
@@ -326,6 +348,7 @@ function App() {
     apps, 
     loading, 
     loadingProgress,
+    backgroundProgress,
     error, 
     pagination,
     setPage,
@@ -537,6 +560,23 @@ function App() {
               onPageChange={setPage}
             />
           </ContentHeader>
+          {backgroundProgress && backgroundProgress.isLoading && (
+            <BackgroundLoadingBar>
+              <BackgroundLoadingText>
+                Loading more apps... ({backgroundProgress.installationsLoaded} installations, {backgroundProgress.appsLoaded} apps)
+              </BackgroundLoadingText>
+              <BackgroundProgressWrapper>
+                <ProgressBar 
+                  progress={(backgroundProgress.pagesLoaded / backgroundProgress.totalPages) * 100}
+                  barSize="small"
+                  aria-label="Background loading progress"
+                />
+              </BackgroundProgressWrapper>
+              <BackgroundLoadingText>
+                {Math.round((backgroundProgress.pagesLoaded / backgroundProgress.totalPages) * 100)}%
+              </BackgroundLoadingText>
+            </BackgroundLoadingBar>
+          )}
           {usageLoading && usageProgress && (
             <AuditLogProgress 
               progress={usageProgress}
