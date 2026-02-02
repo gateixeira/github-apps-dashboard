@@ -9,8 +9,10 @@ import {
   Label,
   Avatar,
   Link,
+  IconButton,
+  useTheme,
 } from '@primer/react';
-import { MarkGithubIcon, LockIcon } from '@primer/octicons-react';
+import { MarkGithubIcon, LockIcon, SunIcon, MoonIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
 import { FilterBar } from './components/FilterBar';
 import { AppCard } from './components/AppCard';
@@ -559,6 +561,8 @@ function App() {
     return null;
   };
 
+  const { colorMode, setColorMode } = useTheme();
+
   return (
     <Container>
       <Header>
@@ -572,6 +576,15 @@ function App() {
           <Text sx={{ color: 'header.text', opacity: 0.7, ml: 2 }}>
             View and manage GitHub Apps across your enterprise organizations
           </Text>
+        </Header.Item>
+        <Header.Item>
+          <IconButton
+            icon={colorMode === 'night' ? SunIcon : MoonIcon}
+            aria-label={colorMode === 'night' ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={() => setColorMode(colorMode === 'night' ? 'day' : 'night')}
+            variant="invisible"
+            sx={{ color: 'header.text' }}
+          />
         </Header.Item>
       </Header>
 
