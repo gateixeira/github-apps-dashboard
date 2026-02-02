@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { GitHubApp, AppInstallation, Organization, Repository } from '../types';
+import { GitHubApp, AppInstallation, Organization, Repository, AuditLogEntry, AppUsageInfo, AppUsageStatus } from '../types';
 
 export class GitHubService {
   private octokit: Octokit;
@@ -252,5 +252,208 @@ export class GitHubService {
     }
 
     return { installations: allInstallations, apps, totalCount, page, perPage };
+  }
+
+  async getAuditLogsForOrg(
+    org: string,
+    options: {
+      phrase?: string;
+      include?: string;
+      after?: string;
+      before?: string;
+      order?: 'asc' | 'desc';
+      perPage?: number;
+    } = {}
+  ): Promise<{ entries: AuditLogEntry[]; nextCursor?: string }> {
+    try {
+      const response = await this.octokit.request('GET /orgs/{org}/audit-log', {
+        org,
+        phrase: options.phrase,
+        include: options.include || 'all',
+        after: options.after,
+        before: options.before,
+        order: options.order || 'desc',
+        per_page: options.perPage || 100,
+      });
+
+      // Debug: log first entry on first page only
+      if (!options.after && response.data && response.data.length > 0) {
+        console.log(`Sample audit log entry for ${org}:`, JSON.stringify(response.data[0], null, 2));
+      }
+
+      // Extract cursor from Link header for pagination
+      // The cursor is already URL-encoded in the link, we need to use it as-is
+      // but the regex captures the encoded version
+      let nextCursor: string | undefined;
+      const linkHeader = response.headers.link;
+      if (linkHeader) {
+        // Debug: log link header to see format
+        console.log(`Link header: ${linkHeader}`);
+        
+        const nextMatch = linkHeader.match(/<[^>]*[?&]after=([^&>]+)[^>]*>;\s*rel="next"/);
+        if (nextMatch) {
+          // The cursor in the Link header is URL-encoded, we need to decode it once
+          // to get the actual cursor value to pass to the next request
+          try {
+            nextCursor = decodeURIComponent(nextMatch[1]);
+          } catch {
+            nextCursor = nextMatch[1]; // Use as-is if decode fails
+          }
+        }
+      }
+
+      return { entries: response.data as AuditLogEntry[], nextCursor };
+    } catch (error: any) {
+      if (error.status === 403) {
+        console.error(`No audit log access for org ${org}: requires admin:org scope`);
+        return { entries: [] };
+      }
+      console.error(`Error fetching audit logs for org ${org}:`, error);
+      return { entries: [] };
+    }
+  }
+
+  async getAppUsageFromAuditLogs(
+    org: string,
+    appSlugs: string[],
+    inactiveDays: number = 90
+  ): Promise<Map<string, AppUsageInfo>> {
+    const usageMap = new Map<string, AppUsageInfo>();
+    const now = Date.now();
+    const inactiveThreshold = now - inactiveDays * 24 * 60 * 60 * 1000;
+
+    console.log(`Looking for app slugs: ${appSlugs.join(', ')}`);
+    console.log(`Looking back ${inactiveDays} days (threshold: ${new Date(inactiveThreshold).toISOString()})`);
+
+    // Initialize all apps as unknown
+    for (const slug of appSlugs) {
+      usageMap.set(slug, {
+        appSlug: slug,
+        lastActivityAt: null,
+        activityCount: 0,
+        status: 'unknown',
+      });
+    }
+
+    // Collect all bot actors found in audit logs for debugging
+    const botActorsFound = new Set<string>();
+    let totalEntriesProcessed = 0;
+    let cursor: string | undefined;
+    let hasMorePages = true;
+    let consecutivePagesWithOldEntries = 0;
+
+    // Paginate through audit logs
+    // Stop when we've seen 3 consecutive pages where ALL entries are older than threshold
+    while (hasMorePages && consecutivePagesWithOldEntries < 3) {
+      const result = await this.getAuditLogsForOrg(org, {
+        perPage: 100,
+        after: cursor,
+      });
+
+      const auditLogs = result.entries;
+
+      if (auditLogs.length === 0) {
+        break;
+      }
+
+      totalEntriesProcessed += auditLogs.length;
+      
+      // Check if any entry in this page is within our threshold
+      let hasRecentEntry = false;
+
+      // Process audit logs and match with app slugs
+      for (const entry of auditLogs) {
+        const entryTime = entry.created_at || entry['@timestamp'];
+        if (typeof entryTime === 'number' && entryTime >= inactiveThreshold) {
+          hasRecentEntry = true;
+        }
+
+        if (!entry.actor) continue;
+
+        let matchingSlug: string | undefined;
+
+        // Method 1: Check if actor is a bot (e.g., "dependabot[bot]" -> "dependabot")
+        const botMatch = entry.actor.match(/^(.+)\[bot\]$/i);
+        if (botMatch) {
+          const actorSlug = botMatch[1].toLowerCase();
+          botActorsFound.add(actorSlug);
+
+          // Find matching app slug (case-insensitive, also handle hyphen variations)
+          matchingSlug = appSlugs.find(
+            slug => slug.toLowerCase() === actorSlug || 
+                    slug.toLowerCase().replace(/-/g, '') === actorSlug.replace(/-/g, '')
+          );
+        }
+
+        // Method 2: Check application_name field for OAuth/Integration events
+        if (!matchingSlug && (entry as any).application_name) {
+          const appName = ((entry as any).application_name as string).toLowerCase();
+          matchingSlug = appSlugs.find(
+            slug => appName.includes(slug.toLowerCase()) ||
+                    slug.toLowerCase().replace(/-/g, ' ') === appName.replace(/-/g, ' ')
+          );
+          if (matchingSlug) {
+            botActorsFound.add(`${(entry as any).application_name} (via application_name)`);
+          }
+        }
+
+        if (matchingSlug) {
+          const usage = usageMap.get(matchingSlug)!;
+          
+          // Handle both timestamp formats (epoch ms or ISO string)
+          let activityDate: string;
+          if (typeof entryTime === 'number') {
+            activityDate = new Date(entryTime).toISOString();
+          } else {
+            activityDate = new Date(entryTime).toISOString();
+          }
+
+          usage.activityCount++;
+
+          // Update last activity if this is more recent
+          if (!usage.lastActivityAt || activityDate > usage.lastActivityAt) {
+            usage.lastActivityAt = activityDate;
+          }
+
+          // Determine status based on activity
+          const lastActivityMs = new Date(usage.lastActivityAt).getTime();
+          usage.status = lastActivityMs >= inactiveThreshold ? 'active' : 'inactive';
+        }
+      }
+
+      // Track if this page had all old entries
+      if (hasRecentEntry) {
+        consecutivePagesWithOldEntries = 0;
+      } else {
+        consecutivePagesWithOldEntries++;
+        console.log(`Page ${Math.floor(totalEntriesProcessed / 100)} had no recent entries (consecutive: ${consecutivePagesWithOldEntries})`);
+      }
+
+      // Get cursor for next page from Link header
+      if (result.nextCursor) {
+        cursor = result.nextCursor;
+        hasMorePages = true;
+      } else {
+        hasMorePages = false;
+      }
+
+      // Safety limit to avoid infinite loops
+      if (totalEntriesProcessed >= 10000) {
+        console.log(`Reached safety limit of 10000 entries for ${org}`);
+        break;
+      }
+    }
+
+    console.log(`Audit logs for ${org}: ${totalEntriesProcessed} entries processed`);
+    console.log(`Bot actors found in audit logs: ${Array.from(botActorsFound).join(', ')}`);
+
+    // Mark apps with no matches as inactive (no bot activity found)
+    for (const [slug, usage] of usageMap) {
+      if (usage.status === 'unknown' && usage.activityCount === 0) {
+        usage.status = 'inactive';
+      }
+    }
+
+    return usageMap;
   }
 }

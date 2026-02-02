@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
+import type { Organization, AppInstallation, GitHubApp, Repository, AppUsageInfo } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -32,6 +32,12 @@ export interface DashboardDataResponse {
   totalCount: number;
   page: number;
   perPage: number;
+}
+
+export interface AppUsageResponse {
+  organization: string;
+  inactiveDays: number;
+  usage: AppUsageInfo[];
 }
 
 const getHeaders = (token: string, enterpriseUrl?: string) => {
@@ -117,6 +123,28 @@ export const api = {
       { organizations, page, perPage },
       { headers: getHeaders(token, enterpriseUrl) }
     );
+    return response.data;
+  },
+
+  async getAppUsage(
+    org: string,
+    appSlugs: string[],
+    token: string,
+    enterpriseUrl?: string,
+    inactiveDays: number = 90
+  ): Promise<AppUsageResponse> {
+    const response = await axios.get(`${API_BASE}/api/organizations/${org}/app-usage`, {
+      headers: getHeaders(token, enterpriseUrl),
+      params: {
+        app_slugs: appSlugs.join(','),
+        inactive_days: inactiveDays,
+      },
+    });
+    return response.data;
+  },
+
+  async getConfig(): Promise<{ inactiveDays: number }> {
+    const response = await axios.get(`${API_BASE}/api/config`);
     return response.data;
   },
 };

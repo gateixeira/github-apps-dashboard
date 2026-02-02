@@ -56,10 +56,22 @@ export interface Organization {
 
 export type ViewMode = 'apps' | 'organizations' | 'repositories';
 
+export type AppUsageStatus = 'active' | 'inactive' | 'unknown';
+
+export type UsageFilter = 'all' | 'active' | 'inactive';
+
+export interface AppUsageInfo {
+  appSlug: string;
+  lastActivityAt: string | null;
+  activityCount: number;
+  status: AppUsageStatus;
+}
+
 export interface FilterState {
   organization: string;
   appOwner: string;
   appSlug: string;
   repository: string;
   viewMode: ViewMode;
+  usageFilter: UsageFilter;
 }

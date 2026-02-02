@@ -7,6 +7,9 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const DEFAULT_INACTIVE_DAYS = parseInt(process.env.INACTIVE_DAYS || '90', 10);
+
+console.log(`Server config: PORT=${PORT}, INACTIVE_DAYS=${DEFAULT_INACTIVE_DAYS}`);
 
 app.use(cors());
 app.use(express.json());
@@ -123,9 +126,42 @@ app.post('/api/dashboard/data', async (req: Request, res: Response) => {
   }
 });
 
+// Get app usage from audit logs for an organization
+app.get('/api/organizations/:org/app-usage', async (req: Request, res: Response) => {
+  try {
+    const githubService = getGitHubService(req);
+    const { org } = req.params;
+    const inactiveDays = parseInt(req.query.inactive_days as string) || DEFAULT_INACTIVE_DAYS;
+    const appSlugs = (req.query.app_slugs as string)?.split(',') || [];
+
+    if (appSlugs.length === 0) {
+      return res.status(400).json({ error: 'app_slugs query parameter required (comma-separated)' });
+    }
+
+    const usageMap = await githubService.getAppUsageFromAuditLogs(org, appSlugs, inactiveDays);
+    const usage = Array.from(usageMap.values());
+
+    res.json({
+      organization: org,
+      inactiveDays,
+      usage,
+    });
+  } catch (error) {
+    console.error('Error fetching app usage:', error);
+    res.status(500).json({ error: 'Failed to fetch app usage data' });
+  }
+});
+
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
+});
+
+// Get server config (for frontend to use server-side defaults)
+app.get('/api/config', (_req: Request, res: Response) => {
+  res.json({
+    inactiveDays: DEFAULT_INACTIVE_DAYS,
+  });
 });
 
 app.listen(PORT, () => {

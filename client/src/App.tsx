@@ -17,6 +17,7 @@ import { AppCard } from './components/AppCard';
 import { OrgCard } from './components/OrgCard';
 import { Pagination } from './components/Pagination';
 import { useDashboardData } from './hooks/useDashboardData';
+import { useAppUsage } from './hooks/useAppUsage';
 import { api } from './services/api';
 import type { FilterState, Repository } from './types';
 
@@ -202,6 +203,7 @@ function App() {
     appSlug: '',
     repository: '',
     viewMode: 'apps',
+    usageFilter: 'all',
   });
   const [allRepositories] = useState<Repository[]>([]);
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -218,6 +220,23 @@ function App() {
     setPage,
     refreshData 
   } = useDashboardData(isConnected ? token : '', enterpriseUrl, selectedOrg);
+
+  const {
+    loading: usageLoading,
+    loadUsage,
+    getUsageForApp,
+    inactiveDays,
+    configLoaded,
+  } = useAppUsage(isConnected ? token : '', enterpriseUrl);
+
+  // Load app usage when apps are loaded and config is ready
+  useEffect(() => {
+    if (apps.size > 0 && organizations.length > 0 && configLoaded) {
+      const appSlugs = Array.from(apps.keys());
+      const orgLogins = organizations.map(o => o.login);
+      loadUsage(orgLogins, appSlugs);
+    }
+  }, [apps, organizations, loadUsage, configLoaded]);
 
   const handleConnect = async () => {
     setIsConnected(true);
@@ -289,11 +308,26 @@ function App() {
   const installationsByApp = useMemo(() => {
     const grouped = new Map<string, typeof installations>();
     filteredInstallations.forEach(inst => {
+      // Filter by usage status
+      if (filters.usageFilter !== 'all') {
+        const usage = getUsageForApp(inst.app_slug);
+        if (filters.usageFilter === 'active') {
+          // Show only active apps
+          if (!usage || usage.status !== 'active') {
+            return;
+          }
+        } else if (filters.usageFilter === 'inactive') {
+          // Show only inactive apps (including unknown)
+          if (usage && usage.status === 'active') {
+            return;
+          }
+        }
+      }
       const existing = grouped.get(inst.app_slug) || [];
       grouped.set(inst.app_slug, [...existing, inst]);
     });
     return grouped;
-  }, [filteredInstallations]);
+  }, [filteredInstallations, filters.usageFilter, getUsageForApp]);
 
   const installationsByOrg = useMemo(() => {
     const grouped = new Map<string, typeof installations>();
@@ -343,7 +377,10 @@ function App() {
       return (
         <div>
           <ContentHeader>
-            <SectionTitle>Apps ({pagination.totalCount})</SectionTitle>
+            <SectionTitle>
+              Apps ({installationsByApp.size})
+              {usageLoading && <span style={{ marginLeft: '8px' }}><Spinner size="small" /></span>}
+            </SectionTitle>
             <Pagination
               currentPage={pagination.page}
               totalPages={pagination.totalPages}
@@ -355,6 +392,7 @@ function App() {
           {Array.from(installationsByApp.entries()).map(([slug, insts]) => {
             const app = apps.get(slug);
             if (!app) return null;
+            const usageInfo = getUsageForApp(slug);
             return (
               <AppCard 
                 key={slug} 
@@ -362,6 +400,7 @@ function App() {
                 installations={insts}
                 token={token}
                 enterpriseUrl={enterpriseUrl}
+                usageInfo={usageInfo}
               />
             );
           })}
@@ -547,6 +586,7 @@ function App() {
               repositories={repositoryNames}
               filters={filters}
               onFilterChange={handleFilterChange}
+              inactiveDays={inactiveDays}
             />
           )}
 

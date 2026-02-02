@@ -66,4 +66,25 @@ export interface FilterState {
   appOwner: string;
   appId: number | null;
   viewMode: 'apps' | 'installations';
+  showUnusedOnly: boolean;
+}
+
+export interface AuditLogEntry {
+  '@timestamp': number;
+  action: string;
+  actor: string;
+  actor_id?: number;
+  created_at: number;
+  org?: string;
+  repo?: string;
+  programmatic_access_type?: string;
+}
+
+export type AppUsageStatus = 'active' | 'inactive' | 'unknown';
+
+export interface AppUsageInfo {
+  appSlug: string;
+  lastActivityAt: string | null;
+  activityCount: number;
+  status: AppUsageStatus;
 }

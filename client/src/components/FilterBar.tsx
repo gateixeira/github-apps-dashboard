@@ -1,7 +1,8 @@
 import type { FC } from 'react';
 import styled from 'styled-components';
-import { FormControl, Select } from '@primer/react';
-import type { Organization, FilterState, ViewMode } from '../types';
+import { FormControl, Select, SegmentedControl } from '@primer/react';
+import { InfoIcon } from '@primer/octicons-react';
+import type { Organization, FilterState, ViewMode, UsageFilter } from '../types';
 
 interface FilterBarProps {
   organizations: Organization[];
@@ -10,6 +11,7 @@ interface FilterBarProps {
   repositories: string[];
   filters: FilterState;
   onFilterChange: (filters: Partial<FilterState>) => void;
+  inactiveDays?: number;
 }
 
 const FilterContainer = styled.div`
@@ -21,6 +23,16 @@ const FilterContainer = styled.div`
   border-radius: 6px;
   border: 1px solid var(--borderColor-default, #d0d7de);
   margin-bottom: 16px;
+  align-items: flex-end;
+`;
+
+const InfoText = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--fgColor-muted, #656d76);
+  padding: 8px 0;
 `;
 
 export const FilterBar: FC<FilterBarProps> = ({
@@ -30,6 +42,7 @@ export const FilterBar: FC<FilterBarProps> = ({
   repositories,
   filters,
   onFilterChange,
+  inactiveDays = 90,
 }) => {
   const viewModes: { value: ViewMode; label: string }[] = [
     { value: 'apps', label: 'View by Apps' },
@@ -114,6 +127,34 @@ export const FilterBar: FC<FilterBarProps> = ({
           </Select>
         </FormControl>
       )}
+
+      <FormControl>
+        <FormControl.Label>App Activity</FormControl.Label>
+        <SegmentedControl
+          aria-label="App activity filter"
+          onChange={(index) => {
+            const values: UsageFilter[] = ['all', 'active', 'inactive'];
+            onFilterChange({ usageFilter: values[index] });
+          }}
+        >
+          <SegmentedControl.Button selected={filters.usageFilter === 'all'}>
+            All
+          </SegmentedControl.Button>
+          <SegmentedControl.Button selected={filters.usageFilter === 'active'}>
+            Active
+          </SegmentedControl.Button>
+          <SegmentedControl.Button selected={filters.usageFilter === 'inactive'}>
+            Inactive
+          </SegmentedControl.Button>
+        </SegmentedControl>
+      </FormControl>
+
+      <InfoText>
+        <InfoIcon size={14} />
+        <span>
+          <strong>Inactive</strong> = no activity in audit logs for the past {inactiveDays} days
+        </span>
+      </InfoText>
     </FilterContainer>
   );
 };

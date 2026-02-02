@@ -9,8 +9,8 @@ import {
   CounterLabel,
   Text,
 } from '@primer/react';
-import { ChevronDownIcon, ChevronUpIcon } from '@primer/octicons-react';
-import type { GitHubApp, AppInstallation, Repository } from '../types';
+import { ChevronDownIcon, ChevronUpIcon, ClockIcon, AlertIcon, CheckCircleIcon } from '@primer/octicons-react';
+import type { GitHubApp, AppInstallation, Repository, AppUsageInfo } from '../types';
 import { api } from '../services/api';
 
 interface AppCardProps {
@@ -18,6 +18,7 @@ interface AppCardProps {
   installations: AppInstallation[];
   token: string;
   enterpriseUrl?: string;
+  usageInfo?: AppUsageInfo;
 }
 
 const Card = styled.div`
@@ -90,7 +91,42 @@ const SectionHeader = styled.h4`
   margin: 0 0 8px 0;
 `;
 
-export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpriseUrl }) => {
+const UsageBadge = styled.div<{ $status: 'active' | 'inactive' | 'unknown' }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: ${({ $status }) => 
+    $status === 'active' ? 'var(--bgColor-success-muted, #dafbe1)' :
+    $status === 'inactive' ? 'var(--bgColor-danger-muted, #ffebe9)' :
+    'var(--bgColor-muted, #f6f8fa)'
+  };
+  color: ${({ $status }) => 
+    $status === 'active' ? 'var(--fgColor-success, #1a7f37)' :
+    $status === 'inactive' ? 'var(--fgColor-danger, #cf222e)' :
+    'var(--fgColor-muted, #656d76)'
+  };
+`;
+
+const formatLastActivity = (dateStr: string | null): string => {
+  if (!dateStr) return 'No activity found';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+  return `${Math.floor(diffDays / 365)} years ago`;
+};
+
+export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpriseUrl, usageInfo }) => {
   const [expanded, setExpanded] = useState(false);
   const [repositories, setRepositories] = useState<Map<number, Repository[]>>(new Map());
   const [loadingRepos, setLoadingRepos] = useState<Set<number>>(new Set());
@@ -135,6 +171,14 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
           </div>
         </CardHeaderInfo>
         <CardHeaderActions>
+          {usageInfo && (
+            <UsageBadge $status={usageInfo.status}>
+              {usageInfo.status === 'active' && <CheckCircleIcon size={12} />}
+              {usageInfo.status === 'inactive' && <AlertIcon size={12} />}
+              {usageInfo.status === 'unknown' && <ClockIcon size={12} />}
+              {usageInfo.status === 'active' ? 'Active' : usageInfo.status === 'inactive' ? 'Inactive' : 'Unknown'}
+            </UsageBadge>
+          )}
           <CounterLabel>{installations.length} installation(s)</CounterLabel>
           {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </CardHeaderActions>
@@ -144,6 +188,22 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
         <CardContent>
           {app.description && (
             <Text as="div" sx={{ color: 'fg.muted', mb: 3 }}>{app.description}</Text>
+          )}
+
+          {usageInfo && (
+            <Section>
+              <SectionHeader>Usage Activity</SectionHeader>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Text sx={{ fontSize: 1 }}>
+                  <strong>Last activity:</strong> {formatLastActivity(usageInfo.lastActivityAt)}
+                </Text>
+                {usageInfo.activityCount > 0 && (
+                  <Text sx={{ fontSize: 1, color: 'fg.muted' }}>
+                    ({usageInfo.activityCount} actions in audit log)
+                  </Text>
+                )}
+              </div>
+            </Section>
           )}
           
           <Section>

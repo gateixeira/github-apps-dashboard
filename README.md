@@ -17,6 +17,7 @@ A modern web application to view and manage GitHub Apps installed across your Gi
 - **🏢 View by Organizations** - Browse organizations and see all apps installed in each one with pagination support
 - **📁 View by Repositories** - Two-column layout showing repositories on the left and app access details on the right
 - **🎯 Powerful Filtering** - Filter by organization, app owner, and specific apps
+- **📊 App Usage Detection** - Identify inactive apps by analyzing audit logs to find apps with no recent activity
 - **🔒 Repository Access** - View all repositories an app has access to, with visibility indicators
 - **📊 Pagination** - Handle large numbers of apps and installations efficiently
 - **🎨 GitHub-Styled UI** - Built with [Primer React](https://primer.style/react/) for a native GitHub look and feel
@@ -40,6 +41,7 @@ A modern web application to view and manage GitHub Apps installed across your Gi
 - **GitHub Personal Access Token** with the following scopes:
   - `read:org` - To list organizations and their app installations
   - `repo` - To access repository information
+  - `admin:org` or `read:audit_log` - (Optional) To detect app usage via audit logs
 
 ## 🚀 Quick Start
 
@@ -82,6 +84,7 @@ cp .env.example .env
 | `GITHUB_TOKEN` | Personal Access Token (can also be entered in the UI) | - |
 | `GITHUB_ENTERPRISE_URL` | Enterprise API URL (e.g., `https://github.example.com/api/v3`) | `https://api.github.com` |
 | `PORT` | Server port | `3001` |
+| `INACTIVE_DAYS` | Number of days to look back in audit logs to determine app activity | `90` |
 
 ### Running in Production
 
@@ -131,6 +134,17 @@ Two-column layout for repository-centric exploration:
 | **Organization** | Show only a specific organization's data |
 | **App Owner** | Filter apps by their owner (organization or user) |
 | **App** | Filter to show a specific app across all organizations |
+| **Show unused apps only** | Filter to show only apps with no recent activity |
+
+### App Usage Detection
+
+The dashboard can identify potentially unused apps by analyzing organization audit logs:
+
+- **Active** (green) - App has activity in audit logs within the configured threshold (default: 90 days)
+- **Inactive** (red) - No activity found in audit logs within the threshold period
+- **Unknown** (gray) - Could not determine activity (e.g., no audit log access)
+
+This feature requires the `admin:org` or `read:audit_log` scope on your Personal Access Token. The inactivity threshold can be configured via the `INACTIVE_DAYS` environment variable.
 
 ## 🔌 API Reference
 
@@ -142,6 +156,7 @@ The server exposes the following REST API endpoints:
 | `GET` | `/api/organizations` | List user's organizations |
 | `GET` | `/api/organizations/:org/installations` | List app installations for an organization |
 | `GET` | `/api/organizations/:org/repositories` | List repositories for an organization |
+| `GET` | `/api/organizations/:org/app-usage` | Get app usage status from audit logs |
 | `GET` | `/api/apps/:slug` | Get app details by slug |
 | `GET` | `/api/installations/:id/repositories` | List repositories for an installation |
 | `POST` | `/api/dashboard/data` | Get aggregated dashboard data |
