@@ -209,7 +209,10 @@ export const Settings: FC<SettingsProps> = ({
           <TextInput
             type="number"
             value={inactiveDays.toString()}
-            onChange={(e) => onInactiveDaysChange(parseInt(e.target.value) || 90)}
+            onChange={(e) => {
+              const value = parseInt(e.target.value) || 90;
+              onInactiveDaysChange(Math.min(365, Math.max(1, value)));
+            }}
             min={1}
             max={365}
             style={{ width: '80px' }}
