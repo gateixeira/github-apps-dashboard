@@ -91,6 +91,17 @@ export interface AuditLogError {
 
 export type AuditLogEvent = AuditLogProgress | AuditLogComplete | AuditLogError;
 
+export interface AuditLogEntry {
+  actor?: string;
+  actor_id?: number;
+  action?: string;
+  created_at?: number;
+  '@timestamp'?: number;
+  org?: string;
+  repo?: string;
+  [key: string]: unknown;
+}
+
 export interface FilterState {
   appOwner: string;
   appSlug: string;

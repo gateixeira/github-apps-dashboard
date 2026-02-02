@@ -6,7 +6,26 @@ import type {
   Repository,
   AppUsageInfo,
   AuditLogProgress,
+  AuditLogEntry,
 } from '../types';
+
+interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+  description: string | null;
+  html_url: string;
+}
+
+interface OctokitError {
+  status?: number;
+  message?: string;
+}
 
 export class GitHubService {
   private octokit: Octokit;
@@ -138,7 +157,7 @@ export class GitHubService {
         page,
       });
 
-      const repositories = response.data.repositories.map((repo: any) => ({
+      const repositories = response.data.repositories.map((repo: GitHubRepository) => ({
         id: repo.id,
         name: repo.name,
         full_name: repo.full_name,
@@ -211,7 +230,7 @@ export class GitHubService {
       order?: 'asc' | 'desc';
       perPage?: number;
     } = {}
-  ): Promise<{ entries: any[]; nextCursor?: string }> {
+  ): Promise<{ entries: AuditLogEntry[]; nextCursor?: string }> {
     try {
       const response = await this.octokit.request('GET /orgs/{org}/audit-log', {
         org,
@@ -237,9 +256,10 @@ export class GitHubService {
         }
       }
 
-      return { entries: response.data as any[], nextCursor };
-    } catch (error: any) {
-      if (error.status === 403) {
+      return { entries: response.data as AuditLogEntry[], nextCursor };
+    } catch (error: unknown) {
+      const octokitError = error as OctokitError;
+      if (octokitError.status === 403) {
         console.error(`No audit log access for org ${org}: requires admin:org scope`);
         return { entries: [] };
       }

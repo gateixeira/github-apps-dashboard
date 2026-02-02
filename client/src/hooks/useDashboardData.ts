@@ -170,6 +170,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
     if (token) {
       loadData(1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, enterpriseUrl, filterOrg]);
 
   return {

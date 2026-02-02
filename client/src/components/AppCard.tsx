@@ -277,6 +277,7 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
     if (expanded) {
       installations.forEach(inst => loadRepositories(inst));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expanded, installations]);
 
   return (
