@@ -9,7 +9,7 @@
 
 ## 🚀 [Try it now → gateixeira.github.io/github-apps-dashboard](https://gateixeira.github.io/github-apps-dashboard/)
 
-A client-only web application to view and manage GitHub Apps installed across your GitHub Enterprise organizations. Get visibility into which apps have access to your repositories and organizations.
+A client-only web application to view and manage GitHub Apps installed across your GitHub organizations. Get visibility into which apps have access to your repositories and organizations.
 
 **🔒 Security First**: This is a **client-only application** - your Personal Access Token never leaves your browser. All GitHub API calls are made directly from the browser to GitHub's API, and no token is ever stored or transmitted to any server.
 

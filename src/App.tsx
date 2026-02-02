@@ -341,6 +341,8 @@ function App() {
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string>('');
   const [repoAppsShown, setRepoAppsShown] = useState(6);
+  const [appsPage, setAppsPage] = useState(1);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   const { 
     organizations, 
@@ -354,6 +356,18 @@ function App() {
     setPage,
     refreshData 
   } = useDashboardData(isConnected ? token : '', enterpriseUrl, selectedOrg);
+
+  // Track when first load completes
+  const handleFirstLoadComplete = () => {
+    if (isFirstLoad && !loading && installations.length > 0) {
+      setIsFirstLoad(false);
+    }
+  };
+
+  // Call this when loading transitions to false
+  if (!loading && isFirstLoad && installations.length > 0) {
+    handleFirstLoadComplete();
+  }
 
   const {
     loading: usageLoading,
@@ -381,6 +395,8 @@ function App() {
       // Trigger a full refresh of data and usage
       refreshData();
       setUsageRefreshKey(prev => prev + 1);
+      setAppsPage(1);
+      setIsFirstLoad(true);
     } else {
       setIsConnected(true);
     }
@@ -388,6 +404,7 @@ function App() {
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
+    setAppsPage(1); // Reset to first page when filters change
   };
 
   // Load repositories when switching to repositories view with an org selected
@@ -475,6 +492,17 @@ function App() {
     return grouped;
   }, [filteredInstallations, filters.usageFilter, getUsageForApp]);
 
+  // Paginated apps for display (30 per page)
+  const APPS_PER_PAGE = 30;
+  const paginatedApps = useMemo(() => {
+    const allApps = Array.from(installationsByApp.entries());
+    const startIndex = (appsPage - 1) * APPS_PER_PAGE;
+    const endIndex = startIndex + APPS_PER_PAGE;
+    return allApps.slice(startIndex, endIndex);
+  }, [installationsByApp, appsPage]);
+
+  const totalAppsPages = Math.ceil(installationsByApp.size / APPS_PER_PAGE);
+
   const installationsByOrg = useMemo(() => {
     const grouped = new Map<string, typeof installations>();
     filteredInstallations.forEach(inst => {
@@ -553,11 +581,11 @@ function App() {
               Apps ({installationsByApp.size})
             </SectionTitle>
             <Pagination
-              currentPage={pagination.page}
-              totalPages={pagination.totalPages}
-              totalCount={pagination.totalCount}
-              perPage={pagination.perPage}
-              onPageChange={setPage}
+              currentPage={appsPage}
+              totalPages={totalAppsPages}
+              totalCount={installationsByApp.size}
+              perPage={APPS_PER_PAGE}
+              onPageChange={setAppsPage}
             />
           </ContentHeader>
           {backgroundProgress && backgroundProgress.isLoading && (
@@ -577,13 +605,13 @@ function App() {
               </BackgroundLoadingText>
             </BackgroundLoadingBar>
           )}
-          {usageLoading && usageProgress && (
+          {isFirstLoad && usageLoading && usageProgress && (
             <AuditLogProgress 
               progress={usageProgress}
               totalOrgs={organizations.length}
             />
           )}
-          {Array.from(installationsByApp.entries()).map(([slug, insts]) => {
+          {paginatedApps.map(([slug, insts]) => {
             const app = apps.get(slug);
             if (!app) return null;
             const usageInfo = getUsageForApp(slug);
@@ -774,7 +802,7 @@ function App() {
         </Header.Item>
         <Header.Item full>
           <HeaderSubtitle>
-            View and manage GitHub Apps across your enterprise organizations
+            View and manage GitHub Apps across your organizations
           </HeaderSubtitle>
         </Header.Item>
         <Header.Item>

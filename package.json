@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "A client-only web application to view and manage GitHub Apps installed across your GitHub Enterprise organizations",
+  "description": "A client-only web application to view and manage GitHub Apps installed across your GitHub organizations",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
