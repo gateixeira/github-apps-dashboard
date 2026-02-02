@@ -9,7 +9,7 @@ import {
   CounterLabel,
   Text,
 } from '@primer/react';
-import { ChevronDownIcon, ChevronUpIcon, ClockIcon, AlertIcon, CheckCircleIcon } from '@primer/octicons-react';
+import { ChevronDownIcon, ChevronUpIcon, ClockIcon, AlertIcon, CheckCircleIcon, RepoIcon } from '@primer/octicons-react';
 import type { GitHubApp, AppInstallation, Repository, AppUsageInfo } from '../types';
 import { api } from '../services/api';
 
@@ -19,6 +19,12 @@ interface AppCardProps {
   token: string;
   enterpriseUrl?: string;
   usageInfo?: AppUsageInfo;
+}
+
+interface RepoData {
+  repositories: Repository[];
+  totalCount: number;
+  hasMore: boolean;
 }
 
 const Card = styled.div`
@@ -126,18 +132,45 @@ const formatLastActivity = (dateStr: string | null): string => {
   return `${Math.floor(diffDays / 365)} years ago`;
 };
 
+const MAX_REPOS_TO_SHOW = 5;
+const MAX_PAGES_TO_FETCH = 3;
+
 export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpriseUrl, usageInfo }) => {
   const [expanded, setExpanded] = useState(false);
-  const [repositories, setRepositories] = useState<Map<number, Repository[]>>(new Map());
+  const [repoData, setRepoData] = useState<Map<number, RepoData>>(new Map());
   const [loadingRepos, setLoadingRepos] = useState<Set<number>>(new Set());
 
-  const loadRepositories = async (installationId: number) => {
-    if (repositories.has(installationId) || loadingRepos.has(installationId)) return;
+  const loadRepositories = async (installation: AppInstallation) => {
+    const installationId = installation.id;
+    
+    // Skip if already loaded, loading, or if "all repositories" is selected
+    if (repoData.has(installationId) || loadingRepos.has(installationId)) return;
+    if (installation.repository_selection === 'all') return;
 
     setLoadingRepos(prev => new Set(prev).add(installationId));
     try {
-      const result = await api.getInstallationRepositories(installationId, token, enterpriseUrl);
-      setRepositories(prev => new Map(prev).set(installationId, result.repositories));
+      const allRepos: Repository[] = [];
+      let totalCount = 0;
+      let page = 1;
+      
+      // Fetch up to MAX_PAGES_TO_FETCH pages to get a good sample
+      while (page <= MAX_PAGES_TO_FETCH) {
+        const result = await api.getInstallationRepositories(installationId, token, enterpriseUrl, page, 30);
+        allRepos.push(...result.repositories);
+        totalCount = result.totalCount || allRepos.length;
+        
+        // Stop if we got all repos or no more to fetch
+        if (result.repositories.length < 30 || allRepos.length >= totalCount) {
+          break;
+        }
+        page++;
+      }
+      
+      setRepoData(prev => new Map(prev).set(installationId, {
+        repositories: allRepos,
+        totalCount,
+        hasMore: allRepos.length < totalCount,
+      }));
     } catch (error) {
       console.error('Failed to load repositories:', error);
     } finally {
@@ -151,7 +184,7 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
 
   useEffect(() => {
     if (expanded) {
-      installations.forEach(inst => loadRepositories(inst.id));
+      installations.forEach(inst => loadRepositories(inst));
     }
   }, [expanded, installations]);
 
@@ -208,47 +241,62 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
           
           <Section>
             <SectionHeader>Installations</SectionHeader>
-            {installations.map(inst => (
-              <InstallationCard key={inst.id}>
-                <InstallationHeader>
-                  <Avatar src={inst.account.avatar_url} size={32} alt={inst.account.login} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Text sx={{ fontWeight: 'bold' }}>{inst.account.login}</Text>
-                    <Label>{inst.account.type}</Label>
-                  </div>
-                  <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
-                    {inst.repository_selection === 'all' ? 'All repositories' : 'Selected repositories'}
-                  </Label>
-                  {inst.suspended_at && <Label variant="danger">Suspended</Label>}
-                </InstallationHeader>
-                
-                <div>
-                  {loadingRepos.has(inst.id) && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Spinner size="small" />
-                      <Text sx={{ fontSize: 0, color: 'fg.muted' }}>Loading repositories...</Text>
+            {installations.map(inst => {
+              const data = repoData.get(inst.id);
+              const reposToShow = data?.repositories.slice(0, MAX_REPOS_TO_SHOW) || [];
+              const remainingCount = data ? data.totalCount - reposToShow.length : 0;
+              
+              return (
+                <InstallationCard key={inst.id}>
+                  <InstallationHeader>
+                    <Avatar src={inst.account.avatar_url} size={32} alt={inst.account.login} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Text sx={{ fontWeight: 'bold' }}>{inst.account.login}</Text>
+                      <Label>{inst.account.type}</Label>
                     </div>
-                  )}
-                  {repositories.has(inst.id) && (
-                    <LabelGroup>
-                      {repositories.get(inst.id)!.map(repo => (
-                        <Label key={repo.id} sx={{ display: 'inline-flex', alignItems: 'center' }}>
-                          <Link href={repo.html_url} target="_blank">
-                            {repo.full_name}
-                          </Link>
-                          {repo.private && <span style={{ marginLeft: '8px' }}><Label size="small" variant="danger">Private</Label></span>}
-                        </Label>
-                      ))}
-                      {repositories.get(inst.id)!.length === 0 && (
-                        <Text sx={{ fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
-                          No repositories accessible
-                        </Text>
-                      )}
-                    </LabelGroup>
-                  )}
-                </div>
-              </InstallationCard>
-            ))}
+                    <Label variant={inst.repository_selection === 'all' ? 'accent' : 'attention'}>
+                      {inst.repository_selection === 'all' ? 'All repositories' : 'Selected repositories'}
+                    </Label>
+                    {inst.suspended_at && <Label variant="danger">Suspended</Label>}
+                  </InstallationHeader>
+                  
+                  <div>
+                    {inst.repository_selection === 'all' ? (
+                      <Text sx={{ fontSize: 0, color: 'fg.muted', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <RepoIcon size={14} />
+                        This app has access to all repositories in {inst.account.login}
+                      </Text>
+                    ) : loadingRepos.has(inst.id) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Spinner size="small" />
+                        <Text sx={{ fontSize: 0, color: 'fg.muted' }}>Loading repositories...</Text>
+                      </div>
+                    ) : data ? (
+                      <LabelGroup>
+                        {reposToShow.map(repo => (
+                          <Label key={repo.id} sx={{ display: 'inline-flex', alignItems: 'center' }}>
+                            <Link href={repo.html_url} target="_blank">
+                              {repo.name}
+                            </Link>
+                            {repo.private && <span style={{ marginLeft: '4px' }}><Label size="small" variant="danger">Private</Label></span>}
+                          </Label>
+                        ))}
+                        {remainingCount > 0 && (
+                          <Text sx={{ fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
+                            ...and {remainingCount} more {remainingCount === 1 ? 'repository' : 'repositories'}
+                          </Text>
+                        )}
+                        {data.repositories.length === 0 && (
+                          <Text sx={{ fontSize: 0, color: 'fg.muted', fontStyle: 'italic' }}>
+                            No repositories accessible
+                          </Text>
+                        )}
+                      </LabelGroup>
+                    ) : null}
+                  </div>
+                </InstallationCard>
+              );
+            })}
           </Section>
 
           <Section>
