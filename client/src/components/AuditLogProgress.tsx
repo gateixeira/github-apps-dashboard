@@ -44,11 +44,11 @@ const IconWrapper = styled.div<{ $phase: string }>`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   margin-top: 16px;
   width: 100%;
-  max-width: 400px;
+  max-width: 250px;
 `;
 
 const StatItem = styled.div`
@@ -99,11 +99,10 @@ export function AuditLogProgress({ progress, totalOrgs = 1, currentOrgIndex = 0 
   };
 
   const getProgressPercent = () => {
-    // Estimate progress based on pages processed
-    // Assume ~50 pages on average, cap at 95% until complete
     if (progress.currentPhase === 'complete') return 100;
-    const estimated = Math.min(95, (progress.pagesProcessed / 50) * 100);
-    return Math.max(5, estimated); // Always show at least 5%
+    if (progress.totalApps === 0) return 5;
+    const percent = (progress.appsChecked / progress.totalApps) * 100;
+    return Math.max(5, Math.min(95, percent)); // Clamp between 5 and 95 until complete
   };
 
   return (
@@ -136,16 +135,12 @@ export function AuditLogProgress({ progress, totalOrgs = 1, currentOrgIndex = 0 
 
       <StatsGrid>
         <StatItem>
-          <StatValue>{progress.pagesProcessed}</StatValue>
-          <StatLabel>Pages</StatLabel>
-        </StatItem>
-        <StatItem>
-          <StatValue>{progress.entriesProcessed.toLocaleString()}</StatValue>
-          <StatLabel>Entries</StatLabel>
+          <StatValue>{progress.appsChecked}/{progress.totalApps}</StatValue>
+          <StatLabel>Apps Checked</StatLabel>
         </StatItem>
         <StatItem>
           <StatValue>{progress.appsFound}</StatValue>
-          <StatLabel>Apps Found</StatLabel>
+          <StatLabel>Active</StatLabel>
         </StatItem>
       </StatsGrid>
     </Container>

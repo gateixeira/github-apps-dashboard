@@ -334,14 +334,13 @@ export class GitHubService {
     }
 
     // Helper to send progress updates
-    const sendProgress = (pagesProcessed: number, entriesProcessed: number, phase: 'fetching' | 'processing' | 'complete', message: string) => {
-      const appsFound = Array.from(usageMap.values()).filter(u => u.activityCount > 0).length;
+    const sendProgress = (appsChecked: number, appsFound: number, phase: 'fetching' | 'processing' | 'complete', message: string) => {
       if (onProgress) {
         onProgress({
           type: 'progress',
           org,
-          pagesProcessed,
-          entriesProcessed,
+          pagesProcessed: appsChecked,
+          entriesProcessed: appsChecked, // Reusing for apps checked
           appsFound,
           currentPhase: phase,
           message,
@@ -349,134 +348,62 @@ export class GitHubService {
       }
     };
 
-    // Collect all bot actors found in audit logs for debugging
-    const botActorsFound = new Set<string>();
-    let totalEntriesProcessed = 0;
-    let pagesProcessed = 0;
-    let cursor: string | undefined;
-    let hasMorePages = true;
-    let consecutivePagesWithOldEntries = 0;
+    sendProgress(0, 0, 'fetching', `Checking ${appSlugs.length} apps in ${org}...`);
 
-    sendProgress(0, 0, 'fetching', `Starting audit log scan for ${org}...`);
+    let appsChecked = 0;
+    let appsFound = 0;
 
-    // Paginate through audit logs
-    // Stop when we've seen 3 consecutive pages where ALL entries are older than threshold
-    while (hasMorePages && consecutivePagesWithOldEntries < 3) {
-      sendProgress(pagesProcessed, totalEntriesProcessed, 'fetching', `Fetching page ${pagesProcessed + 1}...`);
+    // Query audit logs for each app individually using the phrase parameter
+    // This is much more efficient than fetching all logs and filtering
+    for (const slug of appSlugs) {
+      appsChecked++;
+      const botActorName = `${slug}[bot]`;
       
-      const result = await this.getAuditLogsForOrg(org, {
-        perPage: 100,
-        after: cursor,
-      });
+      sendProgress(appsChecked, appsFound, 'fetching', `Checking ${slug} (${appsChecked}/${appSlugs.length})...`);
 
-      const auditLogs = result.entries;
-      pagesProcessed++;
+      try {
+        // Use phrase parameter to filter by actor - order=desc gives us most recent first
+        const result = await this.getAuditLogsForOrg(org, {
+          phrase: `actor:${botActorName}`,
+          perPage: 1, // We only need the most recent entry
+          order: 'desc',
+        });
 
-      if (auditLogs.length === 0) {
-        break;
-      }
+        const usage = usageMap.get(slug)!;
 
-      totalEntriesProcessed += auditLogs.length;
-      sendProgress(pagesProcessed, totalEntriesProcessed, 'processing', `Processing ${totalEntriesProcessed.toLocaleString()} entries...`);
-      
-      // Check if any entry in this page is within our threshold
-      let hasRecentEntry = false;
-
-      // Process audit logs and match with app slugs
-      for (const entry of auditLogs) {
-        const entryTime = entry.created_at || entry['@timestamp'];
-        if (typeof entryTime === 'number' && entryTime >= inactiveThreshold) {
-          hasRecentEntry = true;
-        }
-
-        if (!entry.actor) continue;
-
-        let matchingSlug: string | undefined;
-
-        // Method 1: Check if actor is a bot (e.g., "dependabot[bot]" -> "dependabot")
-        const botMatch = entry.actor.match(/^(.+)\[bot\]$/i);
-        if (botMatch) {
-          const actorSlug = botMatch[1].toLowerCase();
-          botActorsFound.add(actorSlug);
-
-          // Find matching app slug (case-insensitive, also handle hyphen variations)
-          matchingSlug = appSlugs.find(
-            slug => slug.toLowerCase() === actorSlug || 
-                    slug.toLowerCase().replace(/-/g, '') === actorSlug.replace(/-/g, '')
-          );
-        }
-
-        // Method 2: Check application_name field for OAuth/Integration events
-        if (!matchingSlug && (entry as any).application_name) {
-          const appName = ((entry as any).application_name as string).toLowerCase();
-          matchingSlug = appSlugs.find(
-            slug => appName.includes(slug.toLowerCase()) ||
-                    slug.toLowerCase().replace(/-/g, ' ') === appName.replace(/-/g, ' ')
-          );
-          if (matchingSlug) {
-            botActorsFound.add(`${(entry as any).application_name} (via application_name)`);
-          }
-        }
-
-        if (matchingSlug) {
-          const usage = usageMap.get(matchingSlug)!;
+        if (result.entries.length > 0) {
+          const entry = result.entries[0];
+          const entryTime = entry.created_at || entry['@timestamp'];
           
-          // Handle both timestamp formats (epoch ms or ISO string)
-          let activityDate: string;
           if (typeof entryTime === 'number') {
-            activityDate = new Date(entryTime).toISOString();
-          } else {
-            activityDate = new Date(entryTime).toISOString();
-          }
-
-          usage.activityCount++;
-
-          // Update last activity if this is more recent
-          if (!usage.lastActivityAt || activityDate > usage.lastActivityAt) {
+            const activityDate = new Date(entryTime).toISOString();
             usage.lastActivityAt = activityDate;
+            usage.activityCount = 1; // We know there's at least one
+            
+            // Determine status based on whether the most recent activity is within threshold
+            if (entryTime >= inactiveThreshold) {
+              usage.status = 'active';
+              appsFound++;
+              console.log(`✓ ${slug}: Active (last activity: ${activityDate})`);
+            } else {
+              usage.status = 'inactive';
+              console.log(`✗ ${slug}: Inactive (last activity: ${activityDate})`);
+            }
           }
-
-          // Determine status based on activity
-          const lastActivityMs = new Date(usage.lastActivityAt).getTime();
-          usage.status = lastActivityMs >= inactiveThreshold ? 'active' : 'inactive';
+        } else {
+          // No audit log entries found for this bot
+          usage.status = 'inactive';
+          console.log(`✗ ${slug}: No audit log entries found`);
         }
-      }
-
-      // Track if this page had all old entries
-      if (hasRecentEntry) {
-        consecutivePagesWithOldEntries = 0;
-      } else {
-        consecutivePagesWithOldEntries++;
-        console.log(`Page ${Math.floor(totalEntriesProcessed / 100)} had no recent entries (consecutive: ${consecutivePagesWithOldEntries})`);
-      }
-
-      // Get cursor for next page from Link header
-      if (result.nextCursor) {
-        cursor = result.nextCursor;
-        hasMorePages = true;
-      } else {
-        hasMorePages = false;
-      }
-
-      // Safety limit to avoid infinite loops
-      if (totalEntriesProcessed >= 10000) {
-        console.log(`Reached safety limit of 10000 entries for ${org}`);
-        break;
+      } catch (error) {
+        console.error(`Error checking audit logs for ${slug}:`, error);
+        // Leave as unknown if we couldn't check
       }
     }
 
-    console.log(`Audit logs for ${org}: ${totalEntriesProcessed} entries processed`);
-    console.log(`Bot actors found in audit logs: ${Array.from(botActorsFound).join(', ')}`);
+    sendProgress(appsChecked, appsFound, 'complete', `Complete! ${appsFound} active apps out of ${appSlugs.length} checked.`);
 
-    // Mark apps with no matches as inactive (no bot activity found)
-    for (const [slug, usage] of usageMap) {
-      if (usage.status === 'unknown' && usage.activityCount === 0) {
-        usage.status = 'inactive';
-      }
-    }
-
-    const appsFound = Array.from(usageMap.values()).filter(u => u.activityCount > 0).length;
-    sendProgress(pagesProcessed, totalEntriesProcessed, 'complete', `Complete! Found activity for ${appsFound} apps in ${totalEntriesProcessed.toLocaleString()} entries.`);
+    console.log(`Audit log check for ${org}: ${appsChecked} apps checked, ${appsFound} active`);
 
     return usageMap;
   }

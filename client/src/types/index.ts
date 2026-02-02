@@ -92,7 +92,6 @@ export interface AuditLogError {
 export type AuditLogEvent = AuditLogProgress | AuditLogComplete | AuditLogError;
 
 export interface FilterState {
-  organization: string;
   appOwner: string;
   appSlug: string;
   repository: string;

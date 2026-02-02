@@ -4,8 +4,8 @@ import type { AppUsageInfo, AuditLogProgress } from '../types';
 
 export interface UsageProgress {
   org: string;
-  pagesProcessed: number;
-  entriesProcessed: number;
+  appsChecked: number;
+  totalApps: number;
   appsFound: number;
   currentPhase: 'fetching' | 'processing' | 'complete';
   message: string;
@@ -88,8 +88,8 @@ export function useAppUsage(
               const progressEvent = event as AuditLogProgress;
               setProgress({
                 org: progressEvent.org,
-                pagesProcessed: progressEvent.pagesProcessed,
-                entriesProcessed: progressEvent.entriesProcessed,
+                appsChecked: progressEvent.pagesProcessed, // Reusing pagesProcessed for appsChecked
+                totalApps: appSlugs.length,
                 appsFound: progressEvent.appsFound,
                 currentPhase: progressEvent.currentPhase,
                 message: progressEvent.message,

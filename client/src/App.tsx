@@ -199,7 +199,6 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState('');
   const [filters, setFilters] = useState<FilterState>({
-    organization: '',
     appOwner: '',
     appSlug: '',
     repository: '',
@@ -251,11 +250,11 @@ function App() {
   // Load repositories when switching to repositories view with an org selected
   useEffect(() => {
     const loadRepositories = async () => {
-      if (filters.viewMode === 'repositories' && filters.organization && token) {
+      if (filters.viewMode === 'repositories' && selectedOrg && token) {
         setLoadingRepos(true);
         setSelectedRepo('');
         try {
-          const result = await api.getRepositoriesForOrg(filters.organization, token, enterpriseUrl);
+          const result = await api.getRepositoriesForOrg(selectedOrg, token, enterpriseUrl);
           setRepositories(result.repositories);
         } catch (error) {
           console.error('Failed to load repositories:', error);
@@ -269,7 +268,7 @@ function App() {
       }
     };
     loadRepositories();
-  }, [filters.viewMode, filters.organization, token, enterpriseUrl]);
+  }, [filters.viewMode, selectedOrg, token, enterpriseUrl]);
 
   const appOwners = useMemo(() => {
     const owners = new Set<string>();
@@ -291,7 +290,8 @@ function App() {
 
   const filteredInstallations = useMemo(() => {
     return installations.filter(inst => {
-      if (filters.organization && inst.account.login !== filters.organization) {
+      // Filter by selected org (from Settings, always set)
+      if (selectedOrg && inst.account.login !== selectedOrg) {
         return false;
       }
       if (filters.appSlug && inst.app_slug !== filters.appSlug) {
@@ -305,7 +305,7 @@ function App() {
       }
       return true;
     });
-  }, [installations, filters, apps]);
+  }, [installations, filters, apps, selectedOrg]);
 
   const installationsByApp = useMemo(() => {
     const grouped = new Map<string, typeof installations>();
@@ -341,11 +341,11 @@ function App() {
   }, [filteredInstallations]);
 
   const filteredOrganizations = useMemo(() => {
-    if (filters.organization) {
-      return organizations.filter(org => org.login === filters.organization);
+    if (selectedOrg) {
+      return organizations.filter(org => org.login === selectedOrg);
     }
     return organizations;
-  }, [organizations, filters.organization]);
+  }, [organizations, selectedOrg]);
 
   const renderContent = () => {
     if (!isConnected) {
@@ -455,8 +455,8 @@ function App() {
       };
 
       // Get installations for the selected organization
-      const orgInstallations = filters.organization 
-        ? installationsByOrg.get(filters.organization) || []
+      const orgInstallations = selectedOrg 
+        ? installationsByOrg.get(selectedOrg) || []
         : [];
 
       // Find the selected repository object
@@ -465,11 +465,7 @@ function App() {
       return (
         <div>
           <SectionTitle>Repositories {repositories.length > 0 && `(${repositories.length})`}</SectionTitle>
-          {!filters.organization ? (
-            <EmptyState>
-              <Text sx={{ color: 'fg.muted' }}>Please select an organization to view repositories.</Text>
-            </EmptyState>
-          ) : loadingRepos ? (
+          {loadingRepos ? (
             <LoadingRow>
               <Spinner size="small" />
               <Text sx={{ color: 'fg.muted' }}>Loading repositories...</Text>
