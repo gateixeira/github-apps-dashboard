@@ -357,18 +357,6 @@ function App() {
     refreshData 
   } = useDashboardData(isConnected ? token : '', enterpriseUrl, selectedOrg);
 
-  // Track when first load completes
-  const handleFirstLoadComplete = () => {
-    if (isFirstLoad && !loading && installations.length > 0) {
-      setIsFirstLoad(false);
-    }
-  };
-
-  // Call this when loading transitions to false
-  if (!loading && isFirstLoad && installations.length > 0) {
-    handleFirstLoadComplete();
-  }
-
   const {
     loading: usageLoading,
     loadUsage,
@@ -376,6 +364,12 @@ function App() {
     configLoaded,
     progress: usageProgress,
   } = useAppUsage(isConnected ? token : '', enterpriseUrl, inactiveDays);
+
+  // Track when first load completes (both main data and audit log)
+  // Only set isFirstLoad to false when audit log loading also completes
+  if (isFirstLoad && !loading && !usageLoading && installations.length > 0) {
+    setIsFirstLoad(false);
+  }
 
   // Track a refresh counter to force re-fetching usage data on Reconnect
   const [usageRefreshKey, setUsageRefreshKey] = useState(0);
