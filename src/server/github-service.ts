@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { GitHubApp, AppInstallation, Organization, Repository, AuditLogEntry, AppUsageInfo, AppUsageStatus } from '../types';
+import { GitHubApp, AppInstallation, Organization, Repository, AuditLogEntry, AppUsageInfo, AppUsageStatus, AuditLogProgress } from '../types';
 
 export class GitHubService {
   private octokit: Octokit;
@@ -316,7 +316,8 @@ export class GitHubService {
   async getAppUsageFromAuditLogs(
     org: string,
     appSlugs: string[],
-    inactiveDays: number = 90
+    inactiveDays: number = 90,
+    onProgress?: (progress: AuditLogProgress) => void
   ): Promise<Map<string, AppUsageInfo>> {
     const usageMap = new Map<string, AppUsageInfo>();
     const now = Date.now();
@@ -335,28 +336,51 @@ export class GitHubService {
       });
     }
 
+    // Helper to send progress updates
+    const sendProgress = (pagesProcessed: number, entriesProcessed: number, phase: 'fetching' | 'processing' | 'complete', message: string) => {
+      const appsFound = Array.from(usageMap.values()).filter(u => u.activityCount > 0).length;
+      if (onProgress) {
+        onProgress({
+          type: 'progress',
+          org,
+          pagesProcessed,
+          entriesProcessed,
+          appsFound,
+          currentPhase: phase,
+          message,
+        });
+      }
+    };
+
     // Collect all bot actors found in audit logs for debugging
     const botActorsFound = new Set<string>();
     let totalEntriesProcessed = 0;
+    let pagesProcessed = 0;
     let cursor: string | undefined;
     let hasMorePages = true;
     let consecutivePagesWithOldEntries = 0;
 
+    sendProgress(0, 0, 'fetching', `Starting audit log scan for ${org}...`);
+
     // Paginate through audit logs
     // Stop when we've seen 3 consecutive pages where ALL entries are older than threshold
     while (hasMorePages && consecutivePagesWithOldEntries < 3) {
+      sendProgress(pagesProcessed, totalEntriesProcessed, 'fetching', `Fetching page ${pagesProcessed + 1}...`);
+      
       const result = await this.getAuditLogsForOrg(org, {
         perPage: 100,
         after: cursor,
       });
 
       const auditLogs = result.entries;
+      pagesProcessed++;
 
       if (auditLogs.length === 0) {
         break;
       }
 
       totalEntriesProcessed += auditLogs.length;
+      sendProgress(pagesProcessed, totalEntriesProcessed, 'processing', `Processing ${totalEntriesProcessed.toLocaleString()} entries...`);
       
       // Check if any entry in this page is within our threshold
       let hasRecentEntry = false;
@@ -453,6 +477,9 @@ export class GitHubService {
         usage.status = 'inactive';
       }
     }
+
+    const appsFound = Array.from(usageMap.values()).filter(u => u.activityCount > 0).length;
+    sendProgress(pagesProcessed, totalEntriesProcessed, 'complete', `Complete! Found activity for ${appsFound} apps in ${totalEntriesProcessed.toLocaleString()} entries.`);
 
     return usageMap;
   }

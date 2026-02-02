@@ -1,0 +1,153 @@
+import React from 'react';
+import { Text, ProgressBar } from '@primer/react';
+import { SearchIcon, CheckCircleIcon, SyncIcon } from '@primer/octicons-react';
+import styled, { keyframes } from 'styled-components';
+import type { UsageProgress } from '../hooks/useAppUsage';
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+`;
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--bgColor-muted, #f6f8fa);
+  border-radius: 12px;
+  margin: 16px 0;
+`;
+
+const IconWrapper = styled.div<{ $phase: string }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: ${props => props.$phase === 'complete' ? 'var(--bgColor-success-muted, #dafbe1)' : 'var(--bgColor-accent-muted, #ddf4ff)'};
+  margin-bottom: 16px;
+  
+  svg {
+    color: ${props => props.$phase === 'complete' ? 'var(--fgColor-success, #1a7f37)' : 'var(--fgColor-accent, #0969da)'};
+    animation: ${props => props.$phase === 'fetching' ? spin : props.$phase === 'processing' ? pulse : 'none'} 
+               ${props => props.$phase === 'fetching' ? '1s linear infinite' : '1.5s ease-in-out infinite'};
+  }
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 400px;
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const StatValue = styled.span`
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--fgColor-default);
+  font-variant-numeric: tabular-nums;
+`;
+
+const StatLabel = styled.span`
+  font-size: 12px;
+  color: var(--fgColor-muted);
+  margin-top: 4px;
+`;
+
+const Message = styled(Text)`
+  animation: ${pulse} 2s ease-in-out infinite;
+`;
+
+const ProgressBarWrapper = styled.div`
+  width: 100%;
+  max-width: 300px;
+  margin-bottom: 16px;
+`;
+
+interface Props {
+  progress: UsageProgress;
+  totalOrgs?: number;
+  currentOrgIndex?: number;
+}
+
+export function AuditLogProgress({ progress, totalOrgs = 1, currentOrgIndex = 0 }: Props) {
+  const getIcon = () => {
+    switch (progress.currentPhase) {
+      case 'complete':
+        return <CheckCircleIcon size={24} />;
+      case 'fetching':
+        return <SyncIcon size={24} />;
+      default:
+        return <SearchIcon size={24} />;
+    }
+  };
+
+  const getProgressPercent = () => {
+    // Estimate progress based on pages processed
+    // Assume ~50 pages on average, cap at 95% until complete
+    if (progress.currentPhase === 'complete') return 100;
+    const estimated = Math.min(95, (progress.pagesProcessed / 50) * 100);
+    return Math.max(5, estimated); // Always show at least 5%
+  };
+
+  return (
+    <Container>
+      <IconWrapper $phase={progress.currentPhase}>
+        {getIcon()}
+      </IconWrapper>
+      
+      <Text as="div" sx={{ fontSize: 2, fontWeight: 'semibold', mb: 1 }}>
+        Scanning Audit Logs
+      </Text>
+      
+      <Message as="div" sx={{ fontSize: 1, color: 'fg.muted', mb: 3, textAlign: 'center' }}>
+        {progress.message}
+      </Message>
+
+      <ProgressBarWrapper>
+        <ProgressBar 
+          progress={getProgressPercent()} 
+          barSize="small"
+          aria-label="Audit log scan progress"
+        />
+      </ProgressBarWrapper>
+
+      {totalOrgs > 1 && (
+        <Text as="div" sx={{ fontSize: 0, color: 'fg.muted', mb: 2 }}>
+          Organization {currentOrgIndex + 1} of {totalOrgs}: <strong>{progress.org}</strong>
+        </Text>
+      )}
+
+      <StatsGrid>
+        <StatItem>
+          <StatValue>{progress.pagesProcessed}</StatValue>
+          <StatLabel>Pages</StatLabel>
+        </StatItem>
+        <StatItem>
+          <StatValue>{progress.entriesProcessed.toLocaleString()}</StatValue>
+          <StatLabel>Entries</StatLabel>
+        </StatItem>
+        <StatItem>
+          <StatValue>{progress.appsFound}</StatValue>
+          <StatLabel>Apps Found</StatLabel>
+        </StatItem>
+      </StatsGrid>
+    </Container>
+  );
+}

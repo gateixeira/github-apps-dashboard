@@ -164,6 +164,46 @@ app.get('/api/config', (_req: Request, res: Response) => {
   });
 });
 
+// SSE endpoint for streaming app usage progress
+app.get('/api/organizations/:org/app-usage/stream', async (req: Request, res: Response) => {
+  const githubService = getGitHubService(req);
+  const { org } = req.params;
+  const inactiveDays = parseInt(req.query.inactive_days as string) || DEFAULT_INACTIVE_DAYS;
+  const appSlugs = (req.query.app_slugs as string)?.split(',') || [];
+
+  if (appSlugs.length === 0) {
+    res.status(400).json({ error: 'app_slugs query parameter required (comma-separated)' });
+    return;
+  }
+
+  // Set SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+  res.flushHeaders();
+
+  try {
+    const usageMap = await githubService.getAppUsageFromAuditLogs(
+      org,
+      appSlugs,
+      inactiveDays,
+      (progress) => {
+        res.write(`data: ${JSON.stringify(progress)}\n\n`);
+      }
+    );
+
+    // Send final result
+    const usage = Array.from(usageMap.values());
+    res.write(`data: ${JSON.stringify({ type: 'complete', org, usage })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('Error fetching app usage:', error);
+    res.write(`data: ${JSON.stringify({ type: 'error', org, error: 'Failed to fetch app usage data' })}\n\n`);
+    res.end();
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

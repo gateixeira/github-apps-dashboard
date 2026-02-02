@@ -16,6 +16,7 @@ import { FilterBar } from './components/FilterBar';
 import { AppCard } from './components/AppCard';
 import { OrgCard } from './components/OrgCard';
 import { Pagination } from './components/Pagination';
+import { AuditLogProgress } from './components/AuditLogProgress';
 import { useDashboardData } from './hooks/useDashboardData';
 import { useAppUsage } from './hooks/useAppUsage';
 import { api } from './services/api';
@@ -227,6 +228,7 @@ function App() {
     getUsageForApp,
     inactiveDays,
     configLoaded,
+    progress: usageProgress,
   } = useAppUsage(isConnected ? token : '', enterpriseUrl);
 
   // Load app usage when apps are loaded and config is ready
@@ -379,7 +381,6 @@ function App() {
           <ContentHeader>
             <SectionTitle>
               Apps ({installationsByApp.size})
-              {usageLoading && <span style={{ marginLeft: '8px' }}><Spinner size="small" /></span>}
             </SectionTitle>
             <Pagination
               currentPage={pagination.page}
@@ -389,6 +390,12 @@ function App() {
               onPageChange={setPage}
             />
           </ContentHeader>
+          {usageLoading && usageProgress && (
+            <AuditLogProgress 
+              progress={usageProgress}
+              totalOrgs={organizations.length}
+            />
+          )}
           {Array.from(installationsByApp.entries()).map(([slug, insts]) => {
             const app = apps.get(slug);
             if (!app) return null;

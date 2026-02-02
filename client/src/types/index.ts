@@ -67,6 +67,30 @@ export interface AppUsageInfo {
   status: AppUsageStatus;
 }
 
+export interface AuditLogProgress {
+  type: 'progress';
+  org: string;
+  pagesProcessed: number;
+  entriesProcessed: number;
+  appsFound: number;
+  currentPhase: 'fetching' | 'processing' | 'complete';
+  message: string;
+}
+
+export interface AuditLogComplete {
+  type: 'complete';
+  org: string;
+  usage: AppUsageInfo[];
+}
+
+export interface AuditLogError {
+  type: 'error';
+  org: string;
+  error: string;
+}
+
+export type AuditLogEvent = AuditLogProgress | AuditLogComplete | AuditLogError;
+
 export interface FilterState {
   organization: string;
   appOwner: string;
