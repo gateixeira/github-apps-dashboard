@@ -501,7 +501,10 @@ function App() {
     return allApps.slice(startIndex, endIndex);
   }, [installationsByApp, appsPage]);
 
-  const totalAppsPages = Math.ceil(installationsByApp.size / APPS_PER_PAGE);
+  // Total pages based on API totalCount (expected total), loaded pages based on current data
+  const expectedTotalApps = pagination.totalCount;
+  const expectedTotalPages = Math.ceil(expectedTotalApps / APPS_PER_PAGE);
+  const loadedAppsPages = Math.ceil(installationsByApp.size / APPS_PER_PAGE);
 
   const installationsByOrg = useMemo(() => {
     const grouped = new Map<string, typeof installations>();
@@ -578,14 +581,15 @@ function App() {
         <div>
           <ContentHeader>
             <SectionTitle>
-              Apps ({installationsByApp.size})
+              Apps ({installationsByApp.size}{expectedTotalApps > installationsByApp.size ? ` of ${expectedTotalApps}` : ''})
             </SectionTitle>
             <Pagination
               currentPage={appsPage}
-              totalPages={totalAppsPages}
-              totalCount={installationsByApp.size}
+              totalPages={expectedTotalPages}
+              totalCount={expectedTotalApps}
               perPage={APPS_PER_PAGE}
               onPageChange={setAppsPage}
+              loadedPages={loadedAppsPages}
             />
           </ContentHeader>
           {backgroundProgress && backgroundProgress.isLoading && (

@@ -8,6 +8,7 @@ interface PaginationProps {
   totalCount: number;
   perPage: number;
   onPageChange: (page: number) => void;
+  loadedPages?: number; // Number of pages that have been loaded (for progressive loading)
 }
 
 export const Pagination: FC<PaginationProps> = ({
@@ -16,9 +17,13 @@ export const Pagination: FC<PaginationProps> = ({
   totalCount,
   perPage,
   onPageChange,
+  loadedPages,
 }) => {
   const startItem = (currentPage - 1) * perPage + 1;
   const endItem = Math.min(currentPage * perPage, totalCount);
+  
+  // If loadedPages is provided, use it to determine which pages are clickable
+  const maxClickablePage = loadedPages ?? totalPages;
 
   const getPageNumbers = (): (number | string)[] => {
     const pages: (number | string)[] = [];
@@ -52,7 +57,8 @@ export const Pagination: FC<PaginationProps> = ({
     return pages;
   };
 
-  if (totalPages <= 1) {
+  // Always show pagination if there will be more than 1 page
+  if (totalPages <= 1 && totalCount <= perPage) {
     return null;
   }
 
@@ -79,6 +85,7 @@ export const Pagination: FC<PaginationProps> = ({
               size="small"
               variant={page === currentPage ? 'primary' : 'default'}
               onClick={() => onPageChange(page)}
+              disabled={page > maxClickablePage}
             >
               {page}
             </Button>
@@ -93,7 +100,7 @@ export const Pagination: FC<PaginationProps> = ({
           size="small"
           trailingVisual={ChevronRightIcon}
           onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
+          disabled={currentPage >= totalPages || currentPage >= maxClickablePage}
         >
           Next
         </Button>
