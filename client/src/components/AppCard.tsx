@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import ReactMarkdown from 'react-markdown';
 import {
   Avatar,
   Label,
@@ -117,6 +118,40 @@ const UsageBadge = styled.div<{ $status: 'active' | 'inactive' | 'unknown' }>`
   };
 `;
 
+const MarkdownContent = styled.div`
+  color: var(--fgColor-muted, #656d76);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  
+  p {
+    margin: 0 0 8px 0;
+    &:last-child { margin-bottom: 0; }
+  }
+  
+  a {
+    color: var(--fgColor-accent, #0969da);
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+  
+  code {
+    background: var(--bgColor-muted, #f6f8fa);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  
+  ul, ol {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+  
+  li { margin: 4px 0; }
+  
+  strong { font-weight: 600; }
+`;
+
 const formatLastActivity = (dateStr: string | null): string => {
   if (!dateStr) return 'No activity found';
   const date = new Date(dateStr);
@@ -220,7 +255,9 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
       {expanded && (
         <CardContent>
           {app.description && (
-            <Text as="div" sx={{ color: 'fg.muted', mb: 3 }}>{app.description}</Text>
+            <MarkdownContent>
+              <ReactMarkdown>{app.description}</ReactMarkdown>
+            </MarkdownContent>
           )}
 
           {usageInfo && (
