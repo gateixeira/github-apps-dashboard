@@ -296,6 +296,11 @@ const AppItemSlug = styled.div`
   color: var(--fgColor-muted, #6e7781);
 `;
 
+const ShowMoreContainer = styled.div`
+  margin-top: 12px;
+  text-align: center;
+`;
+
 function App() {
   const [token, setToken] = useState('');
   const [enterpriseUrl, setEnterpriseUrl] = useState('');
@@ -313,6 +318,7 @@ function App() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<string>('');
+  const [repoAppsShown, setRepoAppsShown] = useState(6);
 
   const { 
     organizations, 
@@ -622,7 +628,10 @@ function App() {
                   <RepoListItem 
                     key={repo.id} 
                     $selected={repo.full_name === selectedRepo}
-                    onClick={() => setSelectedRepo(repo.full_name)}
+                    onClick={() => {
+                      setSelectedRepo(repo.full_name);
+                      setRepoAppsShown(6);
+                    }}
                   >
                     <RepoName>{repo.name}</RepoName>
                     <RepoMeta>
@@ -659,23 +668,42 @@ function App() {
 
                     <SectionTitle>Apps with access</SectionTitle>
                     <AppsList>
-                      {orgInstallations
-                        .filter(inst => inst.repository_selection === 'all')
-                        .map(inst => {
-                          const app = getAppForInstallation(inst);
-                          return (
-                            <AppItem key={inst.id}>
-                              {app?.owner && (
-                                <Avatar src={app.owner.avatar_url} size={32} square alt={app.name} />
-                              )}
-                              <AppItemInfo>
-                                <AppItemName>{app?.name || inst.app_slug}</AppItemName>
-                                <AppItemSlug>@{inst.app_slug}</AppItemSlug>
-                              </AppItemInfo>
-                              <Label variant="accent" size="small">All repos</Label>
-                            </AppItem>
-                          );
-                        })}
+                      {(() => {
+                        const allRepoApps = orgInstallations.filter(inst => inst.repository_selection === 'all');
+                        const visibleApps = allRepoApps.slice(0, repoAppsShown);
+                        const hasMore = allRepoApps.length > repoAppsShown;
+                        const remainingCount = allRepoApps.length - repoAppsShown;
+                        
+                        return (
+                          <>
+                            {visibleApps.map(inst => {
+                              const app = getAppForInstallation(inst);
+                              return (
+                                <AppItem key={inst.id}>
+                                  {app?.owner && (
+                                    <Avatar src={app.owner.avatar_url} size={32} square alt={app.name} />
+                                  )}
+                                  <AppItemInfo>
+                                    <AppItemName>{app?.name || inst.app_slug}</AppItemName>
+                                    <AppItemSlug>@{inst.app_slug}</AppItemSlug>
+                                  </AppItemInfo>
+                                  <Label variant="accent" size="small">All repos</Label>
+                                </AppItem>
+                              );
+                            })}
+                            {hasMore && (
+                              <ShowMoreContainer>
+                                <Button 
+                                  variant="invisible" 
+                                  onClick={() => setRepoAppsShown(prev => prev + 6)}
+                                >
+                                  Show more ({remainingCount} remaining)
+                                </Button>
+                              </ShowMoreContainer>
+                            )}
+                          </>
+                        );
+                      })()}
                     </AppsList>
                     <RepoSelectHint>
                       Note: Apps with "Selected repos" access require individual repository checks.

@@ -1,10 +1,11 @@
-import type { FC } from 'react';
+import { useState, type FC } from 'react';
 import styled from 'styled-components';
 import {
   Avatar,
   Label,
   Link,
   CounterLabel,
+  Button,
 } from '@primer/react';
 import type { Repository, AppInstallation, GitHubApp } from '../types';
 
@@ -105,14 +106,27 @@ const AppOwner = styled.span`
   display: block;
 `;
 
+const ShowMoreContainer = styled.div`
+  margin-top: 12px;
+  text-align: center;
+`;
+
+const INITIAL_APPS_SHOWN = 6;
+
 export const RepoCard: FC<RepoCardProps> = ({ 
   repository, 
   installations,
   apps 
 }) => {
+  const [appsShown, setAppsShown] = useState(INITIAL_APPS_SHOWN);
+  
   const getAppForInstallation = (inst: AppInstallation): GitHubApp | undefined => {
     return apps.get(inst.app_slug);
   };
+  
+  const visibleInstallations = installations.slice(0, appsShown);
+  const hasMore = installations.length > appsShown;
+  const remainingCount = installations.length - appsShown;
 
   return (
     <Card>
@@ -140,7 +154,7 @@ export const RepoCard: FC<RepoCardProps> = ({
         <CardContent>
           <SectionHeader>Apps with access to this repository</SectionHeader>
           <AppsGrid>
-            {installations.map(inst => {
+            {visibleInstallations.map(inst => {
               const app = getAppForInstallation(inst);
               return (
                 <AppBox key={inst.id}>
@@ -164,6 +178,16 @@ export const RepoCard: FC<RepoCardProps> = ({
               );
             })}
           </AppsGrid>
+          {hasMore && (
+            <ShowMoreContainer>
+              <Button 
+                variant="invisible" 
+                onClick={() => setAppsShown(prev => prev + INITIAL_APPS_SHOWN)}
+              >
+                Show more ({remainingCount} remaining)
+              </Button>
+            </ShowMoreContainer>
+          )}
         </CardContent>
       )}
     </Card>

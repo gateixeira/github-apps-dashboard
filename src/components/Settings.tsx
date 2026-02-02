@@ -208,10 +208,17 @@ export const Settings: FC<SettingsProps> = ({
         <InputCell>
           <TextInput
             type="number"
-            value={inactiveDays.toString()}
+            value={inactiveDays === 0 ? '' : inactiveDays.toString()}
             onChange={(e) => {
-              const value = parseInt(e.target.value) || 90;
-              onInactiveDaysChange(Math.min(365, Math.max(1, value)));
+              const rawValue = e.target.value;
+              if (rawValue === '') {
+                onInactiveDaysChange(0);
+              } else {
+                const value = parseInt(rawValue);
+                if (!isNaN(value)) {
+                  onInactiveDaysChange(Math.min(365, Math.max(0, value)));
+                }
+              }
             }}
             min={1}
             max={365}
@@ -223,7 +230,7 @@ export const Settings: FC<SettingsProps> = ({
           <Button
             variant="primary"
             onClick={onConnect}
-            disabled={!token || !selectedOrg || loading}
+            disabled={!token || !selectedOrg || loading || inactiveDays < 1}
           >
             {loading ? 'Connecting...' : isConnected ? 'Reconnect' : 'Connect'}
           </Button>
