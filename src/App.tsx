@@ -351,6 +351,7 @@ function App() {
   const [repoAppsShown, setRepoAppsShown] = useState(6);
   const [appsPage, setAppsPage] = useState(1);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
+  const [usageLoadingStarted, setUsageLoadingStarted] = useState(false);
 
   const { 
     organizations, 
@@ -374,9 +375,10 @@ function App() {
   } = useAppUsage(isConnected ? token : '', enterpriseUrl, inactiveDays);
 
   // Track when first load completes (both main data and audit log)
-  // Only set isFirstLoad to false when audit log loading also completes
-  if (isFirstLoad && !loading && !usageLoading && installations.length > 0) {
+  // Only set isFirstLoad to false when audit log loading has started AND completed
+  if (isFirstLoad && !loading && usageLoadingStarted && !usageLoading && installations.length > 0) {
     setIsFirstLoad(false);
+    setUsageLoadingStarted(false);
   }
 
   // Track a refresh counter to force re-fetching usage data on Reconnect
@@ -385,6 +387,7 @@ function App() {
   // Load app usage when apps are loaded and config is ready, or when refresh is triggered
   useEffect(() => {
     if (apps.size > 0 && organizations.length > 0 && configLoaded) {
+      setUsageLoadingStarted(true);
       const appSlugs = Array.from(apps.keys());
       const orgLogins = organizations.map(o => o.login);
       loadUsage(orgLogins, appSlugs);
@@ -399,6 +402,7 @@ function App() {
       setUsageRefreshKey(prev => prev + 1);
       setAppsPage(1);
       setIsFirstLoad(true);
+      setUsageLoadingStarted(false);
     } else {
       setIsConnected(true);
     }
@@ -611,7 +615,7 @@ function App() {
               </BackgroundLoadingText>
             </BackgroundLoadingBar>
           )}
-          {isFirstLoad && usageLoading && (
+          {isFirstLoad && (usageLoading || usageLoadingStarted) && (
             <AuditLogProgress 
               progress={usageProgress || {
                 org: organizations[0]?.login || '',
