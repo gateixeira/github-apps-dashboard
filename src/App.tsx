@@ -329,6 +329,11 @@ const BackgroundLoadingText = styled.span`
 const BackgroundProgressWrapper = styled.div`
   flex: 1;
   min-width: 100px;
+  
+  /* Smooth transitions for Primer ProgressBar */
+  [data-component="ProgressBar"] > span {
+    transition: width 0.3s ease-out;
+  }
 `;
 
 const AuditLogLoadingBar = styled.div`
@@ -368,6 +373,7 @@ function App() {
   const [appsPage, setAppsPage] = useState(1);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [usageLoadingStarted, setUsageLoadingStarted] = useState(false);
+  const [smoothedAuditProgress, setSmoothedAuditProgress] = useState({ checked: 0, total: 0, found: 0 });
 
   const { 
     organizations, 
@@ -399,6 +405,28 @@ function App() {
 
   // Track a refresh counter to force re-fetching usage data on Reconnect
   const [usageRefreshKey, setUsageRefreshKey] = useState(0);
+
+  // Smooth the audit progress - only allow values to increase, never decrease
+  useEffect(() => {
+    if (usageProgress) {
+      setSmoothedAuditProgress(prev => ({
+        checked: Math.max(prev.checked, usageProgress.appsChecked),
+        total: Math.max(prev.total, usageProgress.totalApps),
+        found: Math.max(prev.found, usageProgress.appsFound),
+      }));
+    }
+  }, [usageProgress]);
+
+  // Reset smoothed progress when audit log checking is complete
+  useEffect(() => {
+    if (!isFirstLoad && smoothedAuditProgress.total > 0 && smoothedAuditProgress.checked >= smoothedAuditProgress.total) {
+      // Reset after a delay to allow the 100% state to be visible briefly
+      const timer = setTimeout(() => {
+        setSmoothedAuditProgress({ checked: 0, total: 0, found: 0 });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isFirstLoad, smoothedAuditProgress.checked, smoothedAuditProgress.total]);
 
   // Load app usage when apps are loaded and config is ready, or when refresh is triggered
   useEffect(() => {
@@ -631,20 +659,20 @@ function App() {
               </BackgroundLoadingText>
             </BackgroundLoadingBar>
           )}
-          {!isFirstLoad && usageLoading && usageProgress && (
+          {!isFirstLoad && smoothedAuditProgress.total > 0 && smoothedAuditProgress.checked < smoothedAuditProgress.total && (
             <AuditLogLoadingBar>
               <AuditLogLoadingText>
-                Checking activity... ({usageProgress.appsChecked}/{usageProgress.totalApps} apps, {usageProgress.appsFound} active)
+                Checking activity... ({smoothedAuditProgress.checked}/{smoothedAuditProgress.total} apps, {smoothedAuditProgress.found} active)
               </AuditLogLoadingText>
               <BackgroundProgressWrapper>
                 <ProgressBar 
-                  progress={usageProgress.totalApps > 0 ? Math.min((usageProgress.appsChecked / usageProgress.totalApps) * 100, 100) : 0}
+                  progress={smoothedAuditProgress.total > 0 ? Math.min((smoothedAuditProgress.checked / smoothedAuditProgress.total) * 100, 100) : 0}
                   barSize="small"
                   aria-label="Audit log loading progress"
                 />
               </BackgroundProgressWrapper>
               <AuditLogLoadingText>
-                {usageProgress.totalApps > 0 ? Math.min(Math.round((usageProgress.appsChecked / usageProgress.totalApps) * 100), 100) : 0}%
+                {smoothedAuditProgress.total > 0 ? Math.min(Math.round((smoothedAuditProgress.checked / smoothedAuditProgress.total) * 100), 100) : 0}%
               </AuditLogLoadingText>
             </AuditLogLoadingBar>
           )}

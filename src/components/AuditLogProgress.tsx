@@ -93,6 +93,11 @@ const ProgressBarWrapper = styled.div`
   width: 100%;
   max-width: 300px;
   margin-bottom: 16px;
+  
+  /* Smooth transitions for Primer ProgressBar */
+  [data-component="ProgressBar"] > span {
+    transition: width 0.3s ease-out;
+  }
 `;
 
 interface Props {
