@@ -331,6 +331,22 @@ const BackgroundProgressWrapper = styled.div`
   min-width: 100px;
 `;
 
+const AuditLogLoadingBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bgColor-attention-muted, #fff8c5);
+  border-radius: 6px;
+  margin-bottom: 16px;
+`;
+
+const AuditLogLoadingText = styled.span`
+  font-size: 13px;
+  color: var(--fgColor-attention, #9a6700);
+  white-space: nowrap;
+`;
+
 function App() {
   const [token, setToken] = useState('');
   const [enterpriseUrl, setEnterpriseUrl] = useState('');
@@ -614,6 +630,23 @@ function App() {
                 {Math.round((backgroundProgress.pagesLoaded / backgroundProgress.totalPages) * 100)}%
               </BackgroundLoadingText>
             </BackgroundLoadingBar>
+          )}
+          {!isFirstLoad && usageLoading && usageProgress && (
+            <AuditLogLoadingBar>
+              <AuditLogLoadingText>
+                Checking activity... ({usageProgress.appsChecked}/{usageProgress.totalApps} apps, {usageProgress.appsFound} active)
+              </AuditLogLoadingText>
+              <BackgroundProgressWrapper>
+                <ProgressBar 
+                  progress={usageProgress.totalApps > 0 ? Math.min((usageProgress.appsChecked / usageProgress.totalApps) * 100, 100) : 0}
+                  barSize="small"
+                  aria-label="Audit log loading progress"
+                />
+              </BackgroundProgressWrapper>
+              <AuditLogLoadingText>
+                {usageProgress.totalApps > 0 ? Math.min(Math.round((usageProgress.appsChecked / usageProgress.totalApps) * 100), 100) : 0}%
+              </AuditLogLoadingText>
+            </AuditLogLoadingBar>
           )}
           {isFirstLoad && (usageLoading || usageLoadingStarted) && (
             <AuditLogProgress 
