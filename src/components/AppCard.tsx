@@ -7,7 +7,6 @@ import {
   Label,
   Link,
   Spinner,
-  CounterLabel,
 } from '@primer/react';
 import { ChevronDownIcon, ChevronUpIcon, ClockIcon, AlertIcon, CheckCircleIcon, RepoIcon } from '@primer/octicons-react';
 import type { GitHubApp, AppInstallation, Repository, AppUsageInfo } from '../types';
