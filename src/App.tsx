@@ -611,9 +611,16 @@ function App() {
               </BackgroundLoadingText>
             </BackgroundLoadingBar>
           )}
-          {isFirstLoad && usageLoading && usageProgress && (
+          {isFirstLoad && usageLoading && (
             <AuditLogProgress 
-              progress={usageProgress}
+              progress={usageProgress || {
+                org: organizations[0]?.login || '',
+                appsChecked: 0,
+                totalApps: apps.size,
+                appsFound: 0,
+                currentPhase: 'fetching' as const,
+                message: 'Preparing to scan audit logs...',
+              }}
               totalOrgs={organizations.length}
             />
           )}
