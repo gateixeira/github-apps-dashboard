@@ -304,7 +304,6 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
               {usageInfo.status === 'active' ? 'Active' : usageInfo.status === 'inactive' ? 'Inactive' : 'Unknown'}
             </UsageBadge>
           )}
-          <CounterLabel>{installations.length} installation(s)</CounterLabel>
           {expanded ? <ChevronUpIcon /> : <ChevronDownIcon />}
         </CardHeaderActions>
       </CardHeader>
