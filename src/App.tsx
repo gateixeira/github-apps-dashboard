@@ -39,6 +39,10 @@ const Content = styled.div`
   max-width: 1400px;
   margin: 0 auto;
   padding: 32px 24px;
+  
+  @media (max-width: 640px) {
+    padding: 16px 12px;
+  }
 `;
 
 const WelcomeBox = styled.div`
@@ -47,6 +51,10 @@ const WelcomeBox = styled.div`
   background: var(--bgColor-default, #fff);
   border: 1px solid var(--borderColor-default, #d0d7de);
   border-radius: 6px;
+  
+  @media (max-width: 640px) {
+    padding: 24px 16px;
+  }
 `;
 
 const ContentHeader = styled.div`

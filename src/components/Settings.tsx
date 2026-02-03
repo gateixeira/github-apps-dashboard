@@ -45,10 +45,27 @@ const SectionTitle = styled.h2`
 
 const FieldsTable = styled.div`
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(200px, 1fr) minmax(180px, auto) minmax(100px, auto) auto;
-  grid-template-rows: auto auto auto;
-  gap: 8px 24px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
   align-items: start;
+`;
+
+const FieldGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-end;
+  
+  @media (min-width: 641px) {
+    align-self: center;
+    margin-top: 20px;
+  }
 `;
 
 const HeaderCell = styled.div`
@@ -71,14 +88,6 @@ const InputCell = styled.div`
 const CaptionCell = styled.div`
   font-size: 12px;
   color: var(--fgColor-muted, #656d76);
-`;
-
-const ButtonHeader = styled.div`
-  /* Empty placeholder for button column header */
-`;
-
-const FlashCell = styled.div`
-  /* Flash message in caption row */
 `;
 
 const RequiredMarker = styled.span`
@@ -160,73 +169,91 @@ export const Settings: FC<SettingsProps> = ({
       <SectionTitle>Connection Settings</SectionTitle>
 
       <FieldsTable>
-        {/* Row 1: Headers */}
-        <HeaderCell>GitHub Enterprise URL (optional)</HeaderCell>
-        <HeaderCell>Personal Access Token</HeaderCell>
-        <HeaderCell>Organization <RequiredMarker>*</RequiredMarker></HeaderCell>
-        <HeaderCell>Inactivity Period</HeaderCell>
-        <ButtonHeader />
+        <FieldGroup>
+          <HeaderCell>GitHub Enterprise URL (optional)</HeaderCell>
+          <InputCell>
+            <TextInput
+              value={enterpriseUrl}
+              onChange={(e) => onEnterpriseUrlChange(e.target.value)}
+              placeholder="https://github.example.com/api/v3"
+              block
+            />
+          </InputCell>
+          <CaptionCell>Leave empty for github.com</CaptionCell>
+        </FieldGroup>
 
-        {/* Row 2: Inputs */}
-        <InputCell>
-          <TextInput
-            value={enterpriseUrl}
-            onChange={(e) => onEnterpriseUrlChange(e.target.value)}
-            placeholder="https://github.example.com/api/v3"
-            block
-          />
-        </InputCell>
-        <InputCell>
-          <TextInput
-            type="password"
-            value={token}
-            onChange={(e) => onTokenChange(e.target.value)}
-            placeholder="ghp_xxxxxxxxxxxx"
-            block
-          />
-        </InputCell>
-        <InputCell>
-          <Select
-            value={selectedOrg}
-            onChange={(e) => onSelectedOrgChange(e.target.value)}
-            disabled={organizations.length === 0}
-          >
-            <Select.Option value="">Select an organization...</Select.Option>
-            {organizations.map((org) => (
-              <Select.Option key={org.login} value={org.login}>
-                {org.login}
-              </Select.Option>
-            ))}
-          </Select>
-          <IconButton
-            icon={SyncIcon}
-            aria-label="Refresh organizations"
-            onClick={handleRefreshOrgs}
-            disabled={!token || loadingOrgs}
-          />
-        </InputCell>
-        <InputCell>
-          <TextInput
-            type="number"
-            value={inactiveDays === 0 ? '' : inactiveDays.toString()}
-            onChange={(e) => {
-              const rawValue = e.target.value;
-              if (rawValue === '') {
-                onInactiveDaysChange(0);
-              } else {
-                const value = parseInt(rawValue);
-                if (!isNaN(value)) {
-                  onInactiveDaysChange(Math.min(365, Math.max(0, value)));
+        <FieldGroup>
+          <HeaderCell>Personal Access Token</HeaderCell>
+          <InputCell>
+            <TextInput
+              type="password"
+              value={token}
+              onChange={(e) => onTokenChange(e.target.value)}
+              placeholder="ghp_xxxxxxxxxxxx"
+              block
+            />
+          </InputCell>
+          <CaptionCell>Scopes: <code>radmin:org</code>, <code>audit_log</code>, <code>read:enterprise</code>, <code>repo</code></CaptionCell>
+        </FieldGroup>
+
+        <FieldGroup>
+          <HeaderCell>Organization <RequiredMarker>*</RequiredMarker></HeaderCell>
+          <InputCell>
+            <Select
+              value={selectedOrg}
+              onChange={(e) => onSelectedOrgChange(e.target.value)}
+              disabled={organizations.length === 0}
+            >
+              <Select.Option value="">Select an organization...</Select.Option>
+              {organizations.map((org) => (
+                <Select.Option key={org.login} value={org.login}>
+                  {org.login}
+                </Select.Option>
+              ))}
+            </Select>
+            <IconButton
+              icon={SyncIcon}
+              aria-label="Refresh organizations"
+              onClick={handleRefreshOrgs}
+              disabled={!token || loadingOrgs}
+            />
+          </InputCell>
+          <CaptionCell>
+            {!selectedOrg && organizations.length > 0 ? (
+              <WarningText>⚠ Organization required</WarningText>
+            ) : (
+              'Click refresh to load organizations'
+            )}
+          </CaptionCell>
+        </FieldGroup>
+
+        <FieldGroup>
+          <HeaderCell>Inactivity Period</HeaderCell>
+          <InputCell>
+            <TextInput
+              type="number"
+              value={inactiveDays === 0 ? '' : inactiveDays.toString()}
+              onChange={(e) => {
+                const rawValue = e.target.value;
+                if (rawValue === '') {
+                  onInactiveDaysChange(0);
+                } else {
+                  const value = parseInt(rawValue);
+                  if (!isNaN(value)) {
+                    onInactiveDaysChange(Math.min(365, Math.max(0, value)));
+                  }
                 }
-              }
-            }}
-            min={1}
-            max={365}
-            style={{ width: '80px' }}
-          />
-          <span>days</span>
-        </InputCell>
-        <InputCell>
+              }}
+              min={1}
+              max={365}
+              style={{ width: '80px' }}
+            />
+            <span>days</span>
+          </InputCell>
+          <CaptionCell>For audit log usage detection</CaptionCell>
+        </FieldGroup>
+
+        <ButtonGroup>
           <Button
             variant="primary"
             onClick={onConnect}
@@ -234,21 +261,7 @@ export const Settings: FC<SettingsProps> = ({
           >
             {loading ? 'Connecting...' : isConnected ? 'Reconnect' : 'Connect'}
           </Button>
-        </InputCell>
-
-        {/* Row 3: Captions */}
-        <CaptionCell>Leave empty for github.com</CaptionCell>
-        <CaptionCell>Scopes: <code>radmin:org</code>, <code>audit_log</code>,<code>read:enterprise</code>, <code>repo</code>
-</CaptionCell>
-        <CaptionCell>
-          {!selectedOrg && organizations.length > 0 ? (
-            <WarningText>⚠ Organization required</WarningText>
-          ) : (
-            'Click refresh to load organizations'
-          )}
-        </CaptionCell>
-        <CaptionCell>For audit log usage detection</CaptionCell>
-        <FlashCell />
+        </ButtonGroup>
       </FieldsTable>
 
       {showToast && (
