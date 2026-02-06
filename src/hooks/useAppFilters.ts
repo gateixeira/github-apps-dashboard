@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import type { FilterState, AppInstallation, GitHubApp, Organization, Repository, AppUsageInfo } from '../types';
+import { composePredicates, byOrg, byAppSlug, byAppOwner, byUsageStatus } from '../filters/installationFilters';
 
 export const APPS_PER_PAGE = 30;
 
@@ -62,34 +63,19 @@ export function useAppFilters({
   }, [allRepositories]);
 
   const filteredInstallations = useMemo(() => {
-    return installations.filter(inst => {
-      if (selectedOrg && inst.account.login !== selectedOrg) {
-        return false;
-      }
-      if (filters.appSlug && inst.app_slug !== filters.appSlug) {
-        return false;
-      }
-      if (filters.appOwner) {
-        const app = apps.get(inst.app_slug);
-        if (!app?.owner || app.owner.login !== filters.appOwner) {
-          return false;
-        }
-      }
-      return true;
-    });
+    const predicate = composePredicates(
+      byOrg(selectedOrg),
+      byAppSlug(filters.appSlug),
+      byAppOwner(filters.appOwner, apps),
+    );
+    return installations.filter(predicate);
   }, [installations, filters, apps, selectedOrg]);
 
   const installationsByApp = useMemo(() => {
+    const usagePredicate = byUsageStatus(filters.usageFilter, getUsageForApp);
     const grouped = new Map<string, AppInstallation[]>();
     filteredInstallations.forEach(inst => {
-      if (filters.usageFilter !== 'all') {
-        const usage = getUsageForApp(inst.app_slug);
-        if (filters.usageFilter === 'active') {
-          if (!usage || usage.status !== 'active') return;
-        } else if (filters.usageFilter === 'inactive') {
-          if (usage && usage.status === 'active') return;
-        }
-      }
+      if (usagePredicate && !usagePredicate(inst)) return;
       const existing = grouped.get(inst.app_slug) || [];
       grouped.set(inst.app_slug, [...existing, inst]);
     });
