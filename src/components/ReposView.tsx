@@ -6,8 +6,8 @@ import {
   Link,
   Button,
 } from '@primer/react';
-import { LockIcon } from '@primer/octicons-react';
-import type { AppInstallation, GitHubApp, Repository } from '../types';
+import { LockIcon, GlobeIcon, OrganizationIcon } from '@primer/octicons-react';
+import type { AppInstallation, GitHubApp, Repository, RepositoryVisibility } from '../types';
 
 const SectionTitle = styled.h2`
   font-size: 16px;
@@ -149,6 +149,25 @@ const RepoSelectHint = styled.div`
   font-size: 14px;
 `;
 
+function VisibilityBadge({ visibility }: { visibility: RepositoryVisibility }) {
+  switch (visibility) {
+    case 'private':
+      return <><LockIcon size={12} /><span>Private</span></>;
+    case 'internal':
+      return <><OrganizationIcon size={12} /><span>Internal</span></>;
+    default:
+      return <><GlobeIcon size={12} /><span>Public</span></>;
+  }
+}
+
+function visibilityLabelVariant(visibility: RepositoryVisibility): 'danger' | 'attention' | 'secondary' {
+  switch (visibility) {
+    case 'private': return 'danger';
+    case 'internal': return 'attention';
+    default: return 'secondary';
+  }
+}
+
 interface ReposViewProps {
   repositories: Repository[];
   loadingRepos: boolean;
@@ -214,12 +233,7 @@ export function ReposView({
               >
                 <RepoName>{repo.name}</RepoName>
                 <RepoMeta>
-                  {repo.private && (
-                    <>
-                      <LockIcon size={12} />
-                      <span>Private</span>
-                    </>
-                  )}
+                  <VisibilityBadge visibility={repo.visibility} />
                 </RepoMeta>
               </RepoListItem>
             ))}
@@ -254,7 +268,11 @@ export function ReposView({
                       <RepoDetailsDescription>{selectedRepository.description}</RepoDetailsDescription>
                     )}
                   </div>
-                  {selectedRepository.private && <Label variant="danger">Private</Label>}
+                  {selectedRepository.visibility !== 'public' && (
+                    <Label variant={visibilityLabelVariant(selectedRepository.visibility)}>
+                      {selectedRepository.visibility.charAt(0).toUpperCase() + selectedRepository.visibility.slice(1)}
+                    </Label>
+                  )}
                 </RepoDetailsHeader>
 
                 <SectionTitle>Apps with access</SectionTitle>

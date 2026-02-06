@@ -145,7 +145,11 @@ export const RepoCard: FC<RepoCardProps> = ({
           </div>
         </CardHeaderInfo>
         <CardHeaderActions>
-          {repository.private && <Label variant="danger">Private</Label>}
+          {repository.visibility !== 'public' && (
+            <Label variant={repository.visibility === 'internal' ? 'attention' : 'danger'}>
+              {repository.visibility.charAt(0).toUpperCase() + repository.visibility.slice(1)}
+            </Label>
+          )}
           <CounterLabel>{installations.length} app(s)</CounterLabel>
         </CardHeaderActions>
       </CardHeader>

@@ -14,6 +14,7 @@ interface GitHubRepository {
   name: string;
   full_name: string;
   private: boolean;
+  visibility?: string;
   owner: {
     login: string;
     avatar_url: string;
@@ -162,6 +163,7 @@ export class GitHubService {
         name: repo.name,
         full_name: repo.full_name,
         private: repo.private,
+        visibility: (repo.visibility || (repo.private ? 'private' : 'public')) as 'public' | 'private' | 'internal',
         owner: {
           login: repo.owner.login,
           avatar_url: repo.owner.avatar_url,
@@ -201,6 +203,7 @@ export class GitHubService {
         name: repo.name,
         full_name: repo.full_name,
         private: repo.private,
+        visibility: (repo.visibility || (repo.private ? 'private' : 'public')) as 'public' | 'private' | 'internal',
         owner: {
           login: repo.owner.login,
           avatar_url: repo.owner.avatar_url,

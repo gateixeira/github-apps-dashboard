@@ -34,11 +34,14 @@ export interface AppInstallation {
   suspended_at: string | null;
 }
 
+export type RepositoryVisibility = 'public' | 'private' | 'internal';
+
 export interface Repository {
   id: number;
   name: string;
   full_name: string;
   private: boolean;
+  visibility: RepositoryVisibility;
   owner: {
     login: string;
     avatar_url: string;

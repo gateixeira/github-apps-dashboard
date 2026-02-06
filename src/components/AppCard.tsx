@@ -371,7 +371,13 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
                               <Link href={repo.html_url} target="_blank">
                                 {repo.name}
                               </Link>
-                              {repo.private && <span style={{ marginLeft: '4px' }}><Label size="small" variant="danger">Private</Label></span>}
+                              {repo.visibility !== 'public' && (
+                                <span style={{ marginLeft: '4px' }}>
+                                  <Label size="small" variant={repo.visibility === 'internal' ? 'attention' : 'danger'}>
+                                    {repo.visibility.charAt(0).toUpperCase() + repo.visibility.slice(1)}
+                                  </Label>
+                                </span>
+                              )}
                             </Label>
                           </RepoLabel>
                         ))}
