@@ -1,6 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getGitHubService } from '../services/github';
 import type { Repository, ViewMode } from '../types';
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof DOMException && e.name === 'AbortError';
+}
 
 interface UseRepoViewOptions {
   viewMode: ViewMode;
@@ -18,28 +22,40 @@ export function useRepoView({ viewMode, selectedOrg, token, enterpriseUrl }: Use
   const [repoPage, setRepoPage] = useState(1);
   const [selectedRepo, setSelectedRepo] = useState('');
   const [repoAppsShown, setRepoAppsShown] = useState(6);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const loadRepositories = async () => {
       if (viewMode === 'repositories' && selectedOrg && token) {
+        // Cancel previous repo load
+        abortControllerRef.current?.abort();
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        const { signal } = controller;
+
         setLoadingRepos(true);
         setSelectedRepo('');
         setRepoPage(1);
         try {
           const github = getGitHubService(token, enterpriseUrl);
-          const result = await github.getRepositoriesForOrg(selectedOrg, 1);
+          const result = await github.getRepositoriesForOrg(selectedOrg, 1, 30, signal);
+          if (signal.aborted) return;
           setRepositories(result.repositories);
           setHasMoreRepos(result.hasMore);
           setTotalRepos(result.totalCount);
         } catch (error) {
+          if (isAbortError(error)) return;
           console.error('Failed to load repositories:', error);
           setRepositories([]);
           setHasMoreRepos(false);
           setTotalRepos(null);
         } finally {
-          setLoadingRepos(false);
+          if (!controller.signal.aborted) {
+            setLoadingRepos(false);
+          }
         }
       } else if (viewMode !== 'repositories') {
+        abortControllerRef.current?.abort();
         setRepositories([]);
         setSelectedRepo('');
         setHasMoreRepos(false);
@@ -48,6 +64,10 @@ export function useRepoView({ viewMode, selectedOrg, token, enterpriseUrl }: Use
       }
     };
     loadRepositories();
+
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [viewMode, selectedOrg, token, enterpriseUrl]);
 
   const loadMoreRepos = useCallback(async () => {
@@ -62,6 +82,7 @@ export function useRepoView({ viewMode, selectedOrg, token, enterpriseUrl }: Use
       if (result.totalCount !== null) setTotalRepos(result.totalCount);
       setRepoPage(nextPage);
     } catch (error) {
+      if (isAbortError(error)) return;
       console.error('Failed to load more repositories:', error);
     } finally {
       setLoadingMoreRepos(false);

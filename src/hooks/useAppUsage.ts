@@ -1,6 +1,10 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { getGitHubService } from '../services/github';
 import type { AppUsageInfo, AuditLogProgress } from '../types';
+
+function isAbortError(e: unknown): boolean {
+  return e instanceof DOMException && e.name === 'AbortError';
+}
 
 export interface UsageProgress {
   org: string;
@@ -32,19 +36,17 @@ export function useAppUsage(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<UsageProgress | null>(null);
-  const abortedRef = useRef(false);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      abortedRef.current = true;
-    };
-  }, []);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const loadUsage = useCallback(async (orgs: string[], appSlugs: string[]) => {
     if (!token || appSlugs.length === 0 || orgs.length === 0) return;
 
-    abortedRef.current = false;
+    // Cancel any previous in-flight usage scan
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const { signal } = controller;
+
     setLoading(true);
     setError(null);
     setProgress(null);
@@ -54,7 +56,7 @@ export function useAppUsage(
 
     // Process orgs sequentially
     for (const org of orgs) {
-      if (abortedRef.current) break;
+      if (signal.aborted) break;
 
       try {
         const orgUsage = await github.getAppUsageFromAuditLogs(
@@ -62,7 +64,7 @@ export function useAppUsage(
           appSlugs,
           inactiveDays,
           (progressEvent: AuditLogProgress) => {
-            if (abortedRef.current) return;
+            if (signal.aborted) return;
             setProgress({
               org: progressEvent.org,
               appsChecked: progressEvent.pagesProcessed,
@@ -71,7 +73,8 @@ export function useAppUsage(
               currentPhase: progressEvent.currentPhase,
               message: progressEvent.message,
             });
-          }
+          },
+          signal,
         );
 
         // Merge results
@@ -99,13 +102,16 @@ export function useAppUsage(
           }
         }
       } catch (err) {
+        if (isAbortError(err)) break;
         console.error(`Error fetching app usage for ${org}:`, err);
       }
     }
 
-    setUsage(usageMap);
-    setLoading(false);
-    setProgress(null);
+    if (!signal.aborted) {
+      setUsage(usageMap);
+      setLoading(false);
+      setProgress(null);
+    }
   }, [token, enterpriseUrl, inactiveDays]);
 
   const getUsageForApp = useCallback((appSlug: string): AppUsageInfo | undefined => {

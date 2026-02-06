@@ -40,7 +40,7 @@ export class GitHubService {
     });
   }
 
-  async getOrganizations(): Promise<Organization[]> {
+  async getOrganizations(signal?: AbortSignal): Promise<Organization[]> {
     const orgs: Organization[] = [];
     let page = 1;
     
@@ -48,6 +48,7 @@ export class GitHubService {
       const response = await this.octokit.orgs.listForAuthenticatedUser({
         per_page: 100,
         page,
+        request: { signal },
       });
       
       if (response.data.length === 0) break;
@@ -66,7 +67,7 @@ export class GitHubService {
     return orgs;
   }
 
-  async getAppInstallationsForOrg(org: string, page: number = 1, perPage: number = 30): Promise<{
+  async getAppInstallationsForOrg(org: string, page: number = 1, perPage: number = 30, signal?: AbortSignal): Promise<{
     installations: AppInstallation[];
     totalCount: number;
     page: number;
@@ -77,6 +78,7 @@ export class GitHubService {
         org,
         per_page: perPage,
         page,
+        request: { signal },
       });
       
       const installations = response.data.installations.map(inst => {
@@ -113,10 +115,11 @@ export class GitHubService {
     }
   }
 
-  async getApp(appSlug: string): Promise<GitHubApp | null> {
+  async getApp(appSlug: string, signal?: AbortSignal): Promise<GitHubApp | null> {
     try {
       const response = await this.octokit.apps.getBySlug({
         app_slug: appSlug,
+        request: { signal },
       });
       
       const app = response.data;
@@ -145,7 +148,7 @@ export class GitHubService {
     }
   }
 
-  async getInstallationRepositories(installationId: number, page: number = 1, perPage: number = 30): Promise<{
+  async getInstallationRepositories(installationId: number, page: number = 1, perPage: number = 30, signal?: AbortSignal): Promise<{
     repositories: Repository[];
     totalCount: number;
     page: number;
@@ -156,6 +159,7 @@ export class GitHubService {
         installation_id: installationId,
         per_page: perPage,
         page,
+        request: { signal },
       });
 
       const repositories = response.data.repositories.map((repo: GitHubRepository) => ({
@@ -184,7 +188,7 @@ export class GitHubService {
     }
   }
 
-  async getRepositoriesForOrg(org: string, page: number = 1, perPage: number = 30): Promise<{
+  async getRepositoriesForOrg(org: string, page: number = 1, perPage: number = 30, signal?: AbortSignal): Promise<{
     repositories: Repository[];
     page: number;
     perPage: number;
@@ -196,6 +200,7 @@ export class GitHubService {
         org,
         per_page: perPage,
         page,
+        request: { signal },
       });
       
       const repositories = response.data.map(repo => ({
@@ -248,6 +253,7 @@ export class GitHubService {
       before?: string;
       order?: 'asc' | 'desc';
       perPage?: number;
+      signal?: AbortSignal;
     } = {}
   ): Promise<{ entries: AuditLogEntry[]; nextCursor?: string }> {
     try {
@@ -259,6 +265,7 @@ export class GitHubService {
         before: options.before,
         order: options.order || 'desc',
         per_page: options.perPage || 100,
+        request: { signal: options.signal },
       });
 
       // Extract cursor from Link header for pagination
@@ -291,7 +298,8 @@ export class GitHubService {
     org: string,
     appSlugs: string[],
     inactiveDays: number = 90,
-    onProgress?: (progress: AuditLogProgress) => void
+    onProgress?: (progress: AuditLogProgress) => void,
+    signal?: AbortSignal
   ): Promise<Map<string, AppUsageInfo>> {
     const usageMap = new Map<string, AppUsageInfo>();
     const now = Date.now();
@@ -329,6 +337,7 @@ export class GitHubService {
 
     // Query audit logs for each app individually using the phrase parameter
     for (const slug of appSlugs) {
+      if (signal?.aborted) break;
       appsChecked++;
       const botActorName = `${slug}[bot]`;
       
@@ -339,6 +348,7 @@ export class GitHubService {
           phrase: `actor:${botActorName}`,
           perPage: 1,
           order: 'desc',
+          signal,
         });
 
         const usage = usageMap.get(slug)!;
