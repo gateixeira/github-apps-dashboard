@@ -18,6 +18,7 @@ import { useDashboardData } from './hooks/useDashboardData';
 import { useAppUsage } from './hooks/useAppUsage';
 import { useAppFilters, APPS_PER_PAGE } from './hooks/useAppFilters';
 import { useRepoView } from './hooks/useRepoView';
+import { useAppState } from './hooks/useAppState';
 import type { Repository } from './types';
 
 const Container = styled.div`
@@ -162,16 +163,12 @@ const ThemeButton = styled.button`
 `;
 
 function App() {
-  const [token, setToken] = useState('');
-  const [enterpriseUrl, setEnterpriseUrl] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-  const [selectedOrg, setSelectedOrg] = useState('');
-  const [inactiveDays, setInactiveDays] = useState(90);
+  const { state, dispatch, setToken, setEnterpriseUrl, setSelectedOrg, setInactiveDays } = useAppState();
+  const {
+    token, enterpriseUrl, isConnected, selectedOrg, inactiveDays,
+    isFirstLoad, usageLoadingStarted, smoothedAuditProgress, usageRefreshKey,
+  } = state;
   const [allRepositories] = useState<Repository[]>([]);
-  const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [usageLoadingStarted, setUsageLoadingStarted] = useState(false);
-  const [smoothedAuditProgress, setSmoothedAuditProgress] = useState({ checked: 0, total: 0, found: 0 });
-  const [usageRefreshKey, setUsageRefreshKey] = useState(0);
 
   const { 
     organizations, 
@@ -239,35 +236,37 @@ function App() {
 
   // Track when first load completes
   if (isFirstLoad && !loading && usageLoadingStarted && !usageLoading && installations.length > 0) {
-    setIsFirstLoad(false);
-    setUsageLoadingStarted(false);
+    dispatch({ type: 'FIRST_LOAD_COMPLETE' });
   }
 
   // Smooth the audit progress - only allow values to increase
   useEffect(() => {
     if (usageProgress) {
-      setSmoothedAuditProgress(prev => ({
-        checked: Math.max(prev.checked, usageProgress.appsChecked),
-        total: Math.max(prev.total, usageProgress.totalApps),
-        found: Math.max(prev.found, usageProgress.appsFound),
-      }));
+      dispatch({
+        type: 'UPDATE_AUDIT_PROGRESS',
+        payload: {
+          checked: usageProgress.appsChecked,
+          total: usageProgress.totalApps,
+          found: usageProgress.appsFound,
+        },
+      });
     }
-  }, [usageProgress]);
+  }, [usageProgress, dispatch]);
 
   // Reset smoothed progress when audit log checking is complete
   useEffect(() => {
     if (!isFirstLoad && smoothedAuditProgress.total > 0 && smoothedAuditProgress.checked >= smoothedAuditProgress.total) {
       const timer = setTimeout(() => {
-        setSmoothedAuditProgress({ checked: 0, total: 0, found: 0 });
+        dispatch({ type: 'RESET_AUDIT_PROGRESS' });
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isFirstLoad, smoothedAuditProgress.checked, smoothedAuditProgress.total]);
+  }, [isFirstLoad, smoothedAuditProgress.checked, smoothedAuditProgress.total, dispatch]);
 
   // Load app usage when apps are loaded and config is ready
   useEffect(() => {
     if (apps.size > 0 && organizations.length > 0 && configLoaded) {
-      setUsageLoadingStarted(true);
+      dispatch({ type: 'USAGE_LOADING_STARTED' });
       const slugs = Array.from(apps.keys());
       const orgLogins = organizations.map(o => o.login);
       loadUsage(orgLogins, slugs);
@@ -278,12 +277,10 @@ function App() {
   const handleConnect = async () => {
     if (isConnected) {
       refreshData();
-      setUsageRefreshKey(prev => prev + 1);
+      dispatch({ type: 'RECONNECT' });
       setAppsPage(1);
-      setIsFirstLoad(true);
-      setUsageLoadingStarted(false);
     } else {
-      setIsConnected(true);
+      dispatch({ type: 'CONNECT' });
     }
   };
 
