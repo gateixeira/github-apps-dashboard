@@ -235,9 +235,11 @@ function App() {
   });
 
   // Track when first load completes
-  if (isFirstLoad && !loading && usageLoadingStarted && !usageLoading && installations.length > 0) {
-    dispatch({ type: 'FIRST_LOAD_COMPLETE' });
-  }
+  useEffect(() => {
+    if (isFirstLoad && !loading && usageLoadingStarted && !usageLoading && installations.length > 0) {
+      dispatch({ type: 'FIRST_LOAD_COMPLETE' });
+    }
+  }, [isFirstLoad, loading, usageLoadingStarted, usageLoading, installations.length, dispatch]);
 
   // Smooth the audit progress - only allow values to increase
   useEffect(() => {
