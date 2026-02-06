@@ -11,6 +11,7 @@ import { MarkGithubIcon, SunIcon, MoonIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
 import { FilterBar } from './components/FilterBar';
 import { LoadingProgress } from './components/LoadingProgress';
+import { MutedText } from './components/shared/styles';
 import { useAppFilters, APPS_PER_PAGE } from './hooks/useAppFilters';
 import { useRepoView } from './hooks/useRepoView';
 import { useAppState } from './hooks/useAppState';
@@ -112,10 +113,6 @@ const Footer = styled.footer`
   border-top: 1px solid var(--borderColor-default, #d0d7de);
   padding: 16px;
   text-align: center;
-`;
-
-const MutedText = styled.span`
-  color: var(--fgColor-muted, #656d76);
 `;
 
 const LoadingMessage = styled.div`

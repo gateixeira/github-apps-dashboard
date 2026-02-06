@@ -4,6 +4,7 @@ import { Virtuoso } from 'react-virtuoso';
 import { AppCard } from './AppCard';
 import { Pagination } from './Pagination';
 import { AuditLogProgress } from './AuditLogProgress';
+import { SectionTitle, EmptyState, MutedText } from './shared/styles';
 import type { AppInstallation, GitHubApp, Organization } from '../types';
 import type { BackgroundProgress } from '../hooks/useDashboardData';
 import type { UsageProgress } from '../hooks/useAppUsage';
@@ -16,21 +17,6 @@ const ContentHeader = styled.div`
   margin-bottom: 16px;
   flex-wrap: wrap;
   gap: 8px;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 16px 0;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 32px;
-`;
-
-const MutedText = styled.span`
-  color: var(--fgColor-muted, #656d76);
 `;
 
 const BackgroundLoadingBar = styled.div`
