@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import {
   Spinner,
@@ -10,15 +10,16 @@ import {
 import { MarkGithubIcon, SunIcon, MoonIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
 import { FilterBar } from './components/FilterBar';
-import { AppsView } from './components/AppsView';
-import { OrgsView } from './components/OrgsView';
-import { ReposView } from './components/ReposView';
 import { LoadingProgress } from './components/LoadingProgress';
 import { useDashboardData } from './hooks/useDashboardData';
 import { useAppUsage } from './hooks/useAppUsage';
 import { useAppFilters, APPS_PER_PAGE } from './hooks/useAppFilters';
 import { useRepoView } from './hooks/useRepoView';
 import { useAppState } from './hooks/useAppState';
+
+const AppsView = lazy(() => import('./components/AppsView'));
+const OrgsView = lazy(() => import('./components/OrgsView'));
+const ReposView = lazy(() => import('./components/ReposView'));
 
 const Container = styled.div`
   display: flex;
@@ -450,7 +451,9 @@ function App() {
             />
           )}
 
-          {renderContent()}
+          <Suspense fallback={<div style={{ textAlign: 'center', padding: '32px' }}><Spinner size="medium" /></div>}>
+            {renderContent()}
+          </Suspense>
         </Content>
       </Main>
 

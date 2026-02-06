@@ -201,3 +201,5 @@ export function AppsView({
     </div>
   );
 }
+
+export default AppsView;

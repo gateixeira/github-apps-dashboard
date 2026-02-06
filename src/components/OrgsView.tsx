@@ -66,3 +66,5 @@ export function OrgsView({
     </div>
   );
 }
+
+export default OrgsView;

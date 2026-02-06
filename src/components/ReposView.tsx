@@ -314,3 +314,5 @@ export function ReposView({
     </div>
   );
 }
+
+export default ReposView;
