@@ -62,7 +62,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         usageLoadingStarted: false,
       };
     case 'FIRST_LOAD_COMPLETE':
-      return { ...state, isFirstLoad: false, usageLoadingStarted: false };
+      return { ...state, isFirstLoad: false };
     case 'USAGE_LOADING_STARTED':
       return { ...state, usageLoadingStarted: true };
     case 'UPDATE_AUDIT_PROGRESS':

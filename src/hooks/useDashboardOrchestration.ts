@@ -58,26 +58,39 @@ export function useDashboardOrchestration({
     }
   }, [usageProgress, dispatch]);
 
-  // Reset smoothed progress when audit log checking is complete
+  // Re-scan activity after Phase 2 background loading completes to cover all apps
+  const { backgroundProgress } = dashboardData;
+
+  // Reset smoothed progress when audit log checking is complete (and no background loading pending)
   useEffect(() => {
-    if (!isFirstLoad && smoothedAuditProgress.total > 0 && smoothedAuditProgress.checked >= smoothedAuditProgress.total) {
+    if (!isFirstLoad && smoothedAuditProgress.total > 0 && smoothedAuditProgress.checked >= smoothedAuditProgress.total && !backgroundProgress?.isLoading) {
       const timer = setTimeout(() => {
         dispatch({ type: 'RESET_AUDIT_PROGRESS' });
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isFirstLoad, smoothedAuditProgress.checked, smoothedAuditProgress.total, dispatch]);
+  }, [isFirstLoad, smoothedAuditProgress.checked, smoothedAuditProgress.total, backgroundProgress?.isLoading, dispatch]);
 
   // Load app usage when apps are loaded and config is ready
   useEffect(() => {
-    if (apps.size > 0 && organizations.length > 0 && configLoaded) {
+    if (apps.size > 0 && organizations.length > 0 && configLoaded && !usageLoadingStarted) {
       dispatch({ type: 'USAGE_LOADING_STARTED' });
       const slugs = Array.from(apps.keys());
       const orgLogins = organizations.map(o => o.login);
       loadUsage(orgLogins, slugs);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apps, organizations, configLoaded, usageRefreshKey]);
+  }, [apps, organizations, configLoaded, usageRefreshKey, usageLoadingStarted]);
+
+  // Re-scan activity after Phase 2 background loading completes to cover all apps
+  useEffect(() => {
+    if (backgroundProgress && !backgroundProgress.isLoading && apps.size > 0 && organizations.length > 0) {
+      const slugs = Array.from(apps.keys());
+      const orgLogins = organizations.map(o => o.login);
+      loadUsage(orgLogins, slugs);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backgroundProgress?.isLoading]);
 
   const handleConnect = useCallback(() => {
     if (isConnected) {

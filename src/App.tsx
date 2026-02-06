@@ -162,7 +162,7 @@ function App() {
   const { state, dispatch, setToken, setEnterpriseUrl, setSelectedOrg, setInactiveDays } = useAppState();
   const {
     token, enterpriseUrl, isConnected, selectedOrg, inactiveDays,
-    isFirstLoad, usageLoadingStarted, smoothedAuditProgress,
+    smoothedAuditProgress,
   } = state;
 
   const {
@@ -185,9 +185,7 @@ function App() {
   } = dashboardData;
 
   const {
-    loading: usageLoading,
     getUsageForApp,
-    progress: usageProgress,
   } = appUsage;
 
   const {
@@ -303,12 +301,7 @@ function App() {
           loadedAppsPages={loadedAppsPages}
           appsPerPage={APPS_PER_PAGE}
           backgroundProgress={backgroundProgress}
-          isFirstLoad={isFirstLoad}
           smoothedAuditProgress={smoothedAuditProgress}
-          usageLoading={usageLoading}
-          usageLoadingStarted={usageLoadingStarted}
-          usageProgress={usageProgress}
-          organizations={organizations}
           token={token}
           enterpriseUrl={enterpriseUrl}
           getUsageForApp={getUsageForApp}

@@ -1,13 +1,10 @@
 import styled from 'styled-components';
 import { ProgressBar } from '@primer/react';
-import { Virtuoso } from 'react-virtuoso';
 import { AppCard } from './AppCard';
 import { Pagination } from './Pagination';
-import { AuditLogProgress } from './AuditLogProgress';
 import { SectionTitle, EmptyState, MutedText } from './shared/styles';
-import type { AppInstallation, GitHubApp, Organization } from '../types';
+import type { AppInstallation, GitHubApp } from '../types';
 import type { BackgroundProgress } from '../hooks/useDashboardData';
-import type { UsageProgress } from '../hooks/useAppUsage';
 import type { AppUsageInfo } from '../types';
 
 const ContentHeader = styled.div`
@@ -71,12 +68,7 @@ interface AppsViewProps {
   loadedAppsPages: number;
   appsPerPage: number;
   backgroundProgress: BackgroundProgress | null;
-  isFirstLoad: boolean;
   smoothedAuditProgress: { checked: number; total: number; found: number };
-  usageLoading: boolean;
-  usageLoadingStarted: boolean;
-  usageProgress: UsageProgress | null;
-  organizations: Organization[];
   token: string;
   enterpriseUrl: string;
   getUsageForApp: (slug: string) => AppUsageInfo | undefined;
@@ -93,16 +85,17 @@ export function AppsView({
   loadedAppsPages,
   appsPerPage,
   backgroundProgress,
-  isFirstLoad,
   smoothedAuditProgress,
-  usageLoading,
-  usageLoadingStarted,
-  usageProgress,
-  organizations,
   token,
   enterpriseUrl,
   getUsageForApp,
 }: AppsViewProps) {
+  // Use expectedTotalApps as the denominator while Phase 2 is still loading
+  const activityTotal = backgroundProgress?.isLoading
+    ? Math.max(smoothedAuditProgress.total, expectedTotalApps)
+    : smoothedAuditProgress.total;
+  const activityProgress = activityTotal > 0 ? Math.min((smoothedAuditProgress.checked / activityTotal) * 100, 100) : 0;
+
   return (
     <div>
       <ContentHeader>
@@ -135,56 +128,39 @@ export function AppsView({
           </BackgroundLoadingText>
         </BackgroundLoadingBar>
       )}
-      {!isFirstLoad && smoothedAuditProgress.total > 0 && smoothedAuditProgress.checked < smoothedAuditProgress.total && (
+      {activityTotal > 0 && smoothedAuditProgress.checked < activityTotal && (
         <AuditLogLoadingBar>
           <AuditLogLoadingText>
-            Checking activity... ({smoothedAuditProgress.checked}/{smoothedAuditProgress.total} apps, {smoothedAuditProgress.found} active)
+            Checking activity... ({smoothedAuditProgress.checked}/{activityTotal} apps, {smoothedAuditProgress.found} active)
           </AuditLogLoadingText>
           <BackgroundProgressWrapper>
             <ProgressBar 
-              progress={smoothedAuditProgress.total > 0 ? Math.min((smoothedAuditProgress.checked / smoothedAuditProgress.total) * 100, 100) : 0}
+              progress={activityProgress}
               barSize="small"
               aria-label="Audit log loading progress"
             />
           </BackgroundProgressWrapper>
           <AuditLogLoadingText>
-            {smoothedAuditProgress.total > 0 ? Math.min(Math.round((smoothedAuditProgress.checked / smoothedAuditProgress.total) * 100), 100) : 0}%
+            {Math.round(activityProgress)}%
           </AuditLogLoadingText>
         </AuditLogLoadingBar>
       )}
-      {isFirstLoad && (usageLoading || usageLoadingStarted) && (
-        <AuditLogProgress 
-          progress={usageProgress || {
-            org: organizations[0]?.login || '',
-            appsChecked: 0,
-            totalApps: apps.size,
-            appsFound: 0,
-            currentPhase: 'fetching' as const,
-            message: 'Preparing to scan audit logs...',
-          }}
-          totalOrgs={organizations.length}
-        />
-      )}
       {paginatedApps.length > 0 ? (
-        <Virtuoso
-          useWindowScroll
-          data={paginatedApps}
-          computeItemKey={(_, [slug]) => slug}
-          itemContent={(_, [slug, insts]) => {
-            const app = apps.get(slug);
-            if (!app) return <div />;
-            const usageInfo = getUsageForApp(slug);
-            return (
-              <AppCard 
-                app={app} 
-                installations={insts}
-                token={token}
-                enterpriseUrl={enterpriseUrl}
-                usageInfo={usageInfo}
-              />
-            );
-          }}
-        />
+        paginatedApps.map(([slug, insts]) => {
+          const app = apps.get(slug);
+          if (!app) return null;
+          const usageInfo = getUsageForApp(slug);
+          return (
+            <AppCard 
+              key={slug}
+              app={app} 
+              installations={insts}
+              token={token}
+              enterpriseUrl={enterpriseUrl}
+              usageInfo={usageInfo}
+            />
+          );
+        })
       ) : (
         <EmptyState>
           <MutedText>No apps found matching your filters.</MutedText>
