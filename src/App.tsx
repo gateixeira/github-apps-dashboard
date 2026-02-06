@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { lazy, Suspense, useCallback } from 'react';
 import styled from 'styled-components';
 import {
   Spinner,
@@ -11,11 +11,10 @@ import { MarkGithubIcon, SunIcon, MoonIcon } from '@primer/octicons-react';
 import { Settings } from './components/Settings';
 import { FilterBar } from './components/FilterBar';
 import { LoadingProgress } from './components/LoadingProgress';
-import { useDashboardData } from './hooks/useDashboardData';
-import { useAppUsage } from './hooks/useAppUsage';
 import { useAppFilters, APPS_PER_PAGE } from './hooks/useAppFilters';
 import { useRepoView } from './hooks/useRepoView';
 import { useAppState } from './hooks/useAppState';
+import { useDashboardOrchestration } from './hooks/useDashboardOrchestration';
 
 const AppsView = lazy(() => import('./components/AppsView'));
 const OrgsView = lazy(() => import('./components/OrgsView'));
@@ -166,29 +165,33 @@ function App() {
   const { state, dispatch, setToken, setEnterpriseUrl, setSelectedOrg, setInactiveDays } = useAppState();
   const {
     token, enterpriseUrl, isConnected, selectedOrg, inactiveDays,
-    isFirstLoad, usageLoadingStarted, smoothedAuditProgress, usageRefreshKey,
+    isFirstLoad, usageLoadingStarted, smoothedAuditProgress,
   } = state;
 
-  const { 
-    organizations, 
-    installations, 
-    apps, 
-    loading, 
+  const {
+    dashboardData,
+    appUsage,
+    handleConnect: onConnect,
+  } = useDashboardOrchestration({ state, dispatch });
+
+  const {
+    organizations,
+    installations,
+    apps,
+    loading,
     loadingProgress,
     backgroundProgress,
-    error, 
+    error,
     pagination,
     setPage,
-    refreshData 
-  } = useDashboardData(isConnected ? token : '', enterpriseUrl, selectedOrg);
+    refreshData,
+  } = dashboardData;
 
   const {
     loading: usageLoading,
-    loadUsage,
     getUsageForApp,
-    configLoaded,
     progress: usageProgress,
-  } = useAppUsage(isConnected ? token : '', enterpriseUrl, inactiveDays);
+  } = appUsage;
 
   const {
     filters,
@@ -231,57 +234,10 @@ function App() {
     enterpriseUrl,
   });
 
-  // Track when first load completes
-  useEffect(() => {
-    if (isFirstLoad && !loading && usageLoadingStarted && !usageLoading && installations.length > 0) {
-      dispatch({ type: 'FIRST_LOAD_COMPLETE' });
-    }
-  }, [isFirstLoad, loading, usageLoadingStarted, usageLoading, installations.length, dispatch]);
-
-  // Smooth the audit progress - only allow values to increase
-  useEffect(() => {
-    if (usageProgress) {
-      dispatch({
-        type: 'UPDATE_AUDIT_PROGRESS',
-        payload: {
-          checked: usageProgress.appsChecked,
-          total: usageProgress.totalApps,
-          found: usageProgress.appsFound,
-        },
-      });
-    }
-  }, [usageProgress, dispatch]);
-
-  // Reset smoothed progress when audit log checking is complete
-  useEffect(() => {
-    if (!isFirstLoad && smoothedAuditProgress.total > 0 && smoothedAuditProgress.checked >= smoothedAuditProgress.total) {
-      const timer = setTimeout(() => {
-        dispatch({ type: 'RESET_AUDIT_PROGRESS' });
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isFirstLoad, smoothedAuditProgress.checked, smoothedAuditProgress.total, dispatch]);
-
-  // Load app usage when apps are loaded and config is ready
-  useEffect(() => {
-    if (apps.size > 0 && organizations.length > 0 && configLoaded) {
-      dispatch({ type: 'USAGE_LOADING_STARTED' });
-      const slugs = Array.from(apps.keys());
-      const orgLogins = organizations.map(o => o.login);
-      loadUsage(orgLogins, slugs);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apps, organizations, configLoaded, usageRefreshKey]);
-
-  const handleConnect = async () => {
-    if (isConnected) {
-      refreshData();
-      dispatch({ type: 'RECONNECT' });
-      setAppsPage(1);
-    } else {
-      dispatch({ type: 'CONNECT' });
-    }
-  };
+  const handleConnect = useCallback(() => {
+    onConnect();
+    setAppsPage(1);
+  }, [onConnect, setAppsPage]);
 
   const renderContent = () => {
     if (!isConnected) {
