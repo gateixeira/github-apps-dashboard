@@ -1,4 +1,6 @@
+import { useCallback } from 'react';
 import styled from 'styled-components';
+import { Virtuoso } from 'react-virtuoso';
 import {
   Spinner,
   Label,
@@ -42,8 +44,7 @@ const RepoList = styled.div`
   border-radius: 6px;
   background: var(--bgColor-default, #fff);
   overflow: hidden;
-  max-height: 600px;
-  overflow-y: auto;
+  height: 600px;
 `;
 
 const RepoListItem = styled.div<{ $selected?: boolean }>`
@@ -51,10 +52,6 @@ const RepoListItem = styled.div<{ $selected?: boolean }>`
   border-bottom: 1px solid var(--borderColor-default, #d0d7de);
   cursor: pointer;
   background: ${props => props.$selected ? 'var(--bgColor-accent-muted, #ddf4ff)' : 'transparent'};
-  
-  &:last-child {
-    border-bottom: none;
-  }
   
   &:hover {
     background: ${props => props.$selected ? 'var(--bgColor-accent-muted, #ddf4ff)' : 'var(--bgColor-muted, #f6f8fa)'};
@@ -210,6 +207,22 @@ export function ReposView({
   const hasMore = allRepoApps.length > repoAppsShown;
   const remainingCount = allRepoApps.length - repoAppsShown;
 
+  const repoFooter = useCallback(() => {
+    if (!hasMoreRepos) return null;
+    return (
+      <div onClick={loadMoreRepos} style={{ textAlign: 'center', padding: '12px 16px', cursor: loadingMoreRepos ? 'default' : 'pointer', borderTop: '1px solid var(--borderColor-default, #d0d7de)' }}>
+        {loadingMoreRepos ? (
+          <LoadingRow style={{ justifyContent: 'center' }}>
+            <Spinner size="small" />
+            <MutedText>Loading...</MutedText>
+          </LoadingRow>
+        ) : (
+          <Button variant="invisible" onClick={loadMoreRepos}>Show more repositories</Button>
+        )}
+      </div>
+    );
+  }, [hasMoreRepos, loadMoreRepos, loadingMoreRepos]);
+
   return (
     <div>
       <SectionTitle>Repositories {repositories.length > 0 && `(${repositories.length}${totalRepos !== null && totalRepos > repositories.length ? `/${totalRepos}` : ''})`}</SectionTitle>
@@ -225,30 +238,23 @@ export function ReposView({
       ) : (
         <RepoViewContainer>
           <RepoList>
-            {repositories.map(repo => (
-              <RepoListItem 
-                key={repo.id} 
-                $selected={repo.full_name === selectedRepo}
-                onClick={() => selectRepo(repo.full_name)}
-              >
-                <RepoName>{repo.name}</RepoName>
-                <RepoMeta>
-                  <VisibilityBadge visibility={repo.visibility} />
-                </RepoMeta>
-              </RepoListItem>
-            ))}
-            {hasMoreRepos && (
-              <RepoListItem as="div" onClick={loadMoreRepos} style={{ textAlign: 'center', cursor: loadingMoreRepos ? 'default' : 'pointer' }}>
-                {loadingMoreRepos ? (
-                  <LoadingRow style={{ justifyContent: 'center' }}>
-                    <Spinner size="small" />
-                    <MutedText>Loading...</MutedText>
-                  </LoadingRow>
-                ) : (
-                  <Button variant="invisible" onClick={loadMoreRepos}>Show more repositories</Button>
-                )}
-              </RepoListItem>
-            )}
+            <Virtuoso
+              style={{ height: '100%' }}
+              data={repositories}
+              computeItemKey={(_, repo) => repo.id}
+              itemContent={(_, repo) => (
+                <RepoListItem 
+                  $selected={repo.full_name === selectedRepo}
+                  onClick={() => selectRepo(repo.full_name)}
+                >
+                  <RepoName>{repo.name}</RepoName>
+                  <RepoMeta>
+                    <VisibilityBadge visibility={repo.visibility} />
+                  </RepoMeta>
+                </RepoListItem>
+              )}
+              components={{ Footer: repoFooter }}
+            />
           </RepoList>
 
           <RepoDetails>

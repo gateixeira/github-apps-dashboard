@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { ProgressBar } from '@primer/react';
+import { Virtuoso } from 'react-virtuoso';
 import { AppCard } from './AppCard';
 import { Pagination } from './Pagination';
 import { AuditLogProgress } from './AuditLogProgress';
@@ -178,22 +179,27 @@ export function AppsView({
           totalOrgs={organizations.length}
         />
       )}
-      {paginatedApps.map(([slug, insts]) => {
-        const app = apps.get(slug);
-        if (!app) return null;
-        const usageInfo = getUsageForApp(slug);
-        return (
-          <AppCard 
-            key={slug} 
-            app={app} 
-            installations={insts}
-            token={token}
-            enterpriseUrl={enterpriseUrl}
-            usageInfo={usageInfo}
-          />
-        );
-      })}
-      {installationsByApp.size === 0 && (
+      {paginatedApps.length > 0 ? (
+        <Virtuoso
+          useWindowScroll
+          data={paginatedApps}
+          computeItemKey={(_, [slug]) => slug}
+          itemContent={(_, [slug, insts]) => {
+            const app = apps.get(slug);
+            if (!app) return <div />;
+            const usageInfo = getUsageForApp(slug);
+            return (
+              <AppCard 
+                app={app} 
+                installations={insts}
+                token={token}
+                enterpriseUrl={enterpriseUrl}
+                usageInfo={usageInfo}
+              />
+            );
+          }}
+        />
+      ) : (
         <EmptyState>
           <MutedText>No apps found matching your filters.</MutedText>
         </EmptyState>
