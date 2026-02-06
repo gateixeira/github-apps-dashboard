@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import styled from 'styled-components';
 import {
   Spinner,
@@ -19,7 +19,6 @@ import { useAppUsage } from './hooks/useAppUsage';
 import { useAppFilters, APPS_PER_PAGE } from './hooks/useAppFilters';
 import { useRepoView } from './hooks/useRepoView';
 import { useAppState } from './hooks/useAppState';
-import type { Repository } from './types';
 
 const Container = styled.div`
   display: flex;
@@ -168,7 +167,6 @@ function App() {
     token, enterpriseUrl, isConnected, selectedOrg, inactiveDays,
     isFirstLoad, usageLoadingStarted, smoothedAuditProgress, usageRefreshKey,
   } = state;
-  const [allRepositories] = useState<Repository[]>([]);
 
   const { 
     organizations, 
@@ -198,7 +196,6 @@ function App() {
     setAppsPage,
     appOwners,
     appSlugs,
-    repositoryNames,
     installationsByApp,
     installationsByOrg,
     filteredOrganizations,
@@ -213,7 +210,6 @@ function App() {
     selectedOrg,
     pagination,
     getUsageForApp,
-    allRepositories,
   });
 
   const {
@@ -448,7 +444,6 @@ function App() {
             <FilterBar
               appOwners={appOwners}
               appSlugs={appSlugs}
-              repositories={repositoryNames}
               filters={filters}
               onFilterChange={handleFilterChange}
               inactiveDays={inactiveDays}

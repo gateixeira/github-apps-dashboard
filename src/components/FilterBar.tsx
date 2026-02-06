@@ -7,7 +7,6 @@ import type { FilterState, ViewMode, UsageFilter } from '../types';
 interface FilterBarProps {
   appOwners: string[];
   appSlugs: string[];
-  repositories: string[];
   filters: FilterState;
   onFilterChange: (filters: Partial<FilterState>) => void;
   inactiveDays?: number;
@@ -37,7 +36,6 @@ const InfoText = styled.div`
 export const FilterBar: FC<FilterBarProps> = ({
   appOwners,
   appSlugs,
-  repositories,
   filters,
   onFilterChange,
   inactiveDays = 90,
@@ -93,23 +91,6 @@ export const FilterBar: FC<FilterBarProps> = ({
           ))}
         </Select>
       </FormControl>
-
-      {filters.viewMode === 'repositories' && (
-        <FormControl>
-          <FormControl.Label>Repository</FormControl.Label>
-          <Select
-            value={filters.repository}
-            onChange={(e) => onFilterChange({ repository: e.target.value })}
-          >
-            <Select.Option value="">All Repositories</Select.Option>
-            {repositories.map((repo) => (
-              <Select.Option key={repo} value={repo}>
-                {repo}
-              </Select.Option>
-            ))}
-          </Select>
-        </FormControl>
-      )}
 
       <FormControl>
         <FormControl.Label>App Activity</FormControl.Label>

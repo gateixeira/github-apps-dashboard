@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import type { FilterState, AppInstallation, GitHubApp, Organization, Repository, AppUsageInfo } from '../types';
+import type { FilterState, AppInstallation, GitHubApp, Organization, AppUsageInfo } from '../types';
 import { composePredicates, byOrg, byAppSlug, byAppOwner, byUsageStatus } from '../filters/installationFilters';
 
 export const APPS_PER_PAGE = 30;
@@ -18,7 +18,6 @@ interface UseAppFiltersOptions {
   selectedOrg: string;
   pagination: PaginationInfo;
   getUsageForApp: (appSlug: string) => AppUsageInfo | undefined;
-  allRepositories: Repository[];
 }
 
 export function useAppFilters({
@@ -28,12 +27,10 @@ export function useAppFilters({
   selectedOrg,
   pagination,
   getUsageForApp,
-  allRepositories,
 }: UseAppFiltersOptions) {
   const [filters, setFilters] = useState<FilterState>({
     appOwner: '',
     appSlug: '',
-    repository: '',
     viewMode: 'apps',
     usageFilter: 'all',
   });
@@ -57,10 +54,6 @@ export function useAppFilters({
   const appSlugs = useMemo(() => {
     return Array.from(apps.keys()).sort();
   }, [apps]);
-
-  const repositoryNames = useMemo(() => {
-    return allRepositories.map(r => r.full_name).sort();
-  }, [allRepositories]);
 
   const filteredInstallations = useMemo(() => {
     const predicate = composePredicates(
@@ -115,7 +108,6 @@ export function useAppFilters({
     setAppsPage,
     appOwners,
     appSlugs,
-    repositoryNames,
     filteredInstallations,
     installationsByApp,
     installationsByOrg,

@@ -108,7 +108,6 @@ export interface AuditLogEntry {
 export interface FilterState {
   appOwner: string;
   appSlug: string;
-  repository: string;
   viewMode: ViewMode;
   usageFilter: UsageFilter;
 }
