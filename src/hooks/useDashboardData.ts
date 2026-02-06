@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getGitHubService } from '../services/github';
 import type { Organization, AppInstallation, GitHubApp, Repository } from '../types';
 
@@ -61,8 +61,15 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
     totalPages: 0,
   });
 
+  const abortedRef = useRef(false);
+
   const loadData = useCallback(async () => {
     if (!token) return;
+
+    // Cancel any previous in-flight load, then reset for this invocation
+    abortedRef.current = true;
+    abortedRef.current = false;
+    abortedRef.current = false;
 
     const github = getGitHubService(token, enterpriseUrl);
 
@@ -81,6 +88,8 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
 
     try {
       const allOrgs = await github.getOrganizations();
+      if (abortedRef.current) return;
+
       const orgsToProcess = filterOrg 
         ? allOrgs.filter(org => org.login === filterOrg) 
         : allOrgs;
@@ -106,6 +115,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
 
       // PHASE 1: Load first page of each org (initial fast load)
       for (let i = 0; i < orgsToProcess.length; i++) {
+        if (abortedRef.current) return;
         const org = orgsToProcess[i];
         
         setLoadingProgress({
@@ -121,6 +131,8 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
 
         try {
           const result = await github.getAppInstallationsForOrg(org.login, 1, PER_PAGE);
+          if (abortedRef.current) return;
+
           allInstallations.push(...result.installations);
           totalCount += result.totalCount;
           
@@ -129,6 +141,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
           orgPagination.set(org.login, { totalCount: result.totalCount, pagesLoaded: 1, totalPages });
 
           for (const inst of result.installations) {
+            if (abortedRef.current) return;
             if (!appsMap.has(inst.app_slug)) {
               setLoadingProgress({
                 phase: 'apps',
@@ -142,6 +155,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
               });
               
               const app = await github.getApp(inst.app_slug);
+              if (abortedRef.current) return;
               if (app) {
                 appsMap.set(inst.app_slug, app);
               }
@@ -151,6 +165,8 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
           console.error(`Error loading installations for ${org.login}:`, e);
         }
       }
+
+      if (abortedRef.current) return;
 
       // Update state with first page data
       setInstallations(allInstallations);
@@ -195,14 +211,19 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         // Load remaining pages for each org
         for (const [orgLogin, info] of orgsNeedingMorePages) {
           for (let page = 2; page <= info.totalPages; page++) {
+            if (abortedRef.current) return;
             try {
               const result = await github.getAppInstallationsForOrg(orgLogin, page, PER_PAGE);
+              if (abortedRef.current) return;
+
               allInstallations = [...allInstallations, ...result.installations];
               
               // Load app details for new installations
               for (const inst of result.installations) {
+                if (abortedRef.current) return;
                 if (!appsMap.has(inst.app_slug)) {
                   const app = await github.getApp(inst.app_slug);
+                  if (abortedRef.current) return;
                   if (app) {
                     appsMap.set(inst.app_slug, app);
                   }
@@ -226,6 +247,8 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
             }
           }
         }
+
+        if (abortedRef.current) return;
         
         // Background loading complete
         setBackgroundProgress({
@@ -237,9 +260,11 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
         });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load data');
-      setLoading(false);
-      setLoadingProgress(null);
+      if (!abortedRef.current) {
+        setError(e instanceof Error ? e.message : 'Failed to load data');
+        setLoading(false);
+        setLoadingProgress(null);
+      }
     }
   }, [token, enterpriseUrl, filterOrg]);
 
@@ -269,6 +294,9 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
     if (token) {
       loadData();
     }
+    return () => {
+      abortedRef.current = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, enterpriseUrl, filterOrg]);
 
