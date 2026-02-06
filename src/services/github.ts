@@ -187,6 +187,7 @@ export class GitHubService {
     page: number;
     perPage: number;
     hasMore: boolean;
+    totalCount: number | null;
   }> {
     try {
       const response = await this.octokit.repos.listForOrg({
@@ -207,16 +208,31 @@ export class GitHubService {
         description: repo.description || null,
         html_url: repo.html_url,
       }));
+
+      // Parse total from Link header's last page
+      let totalCount: number | null = null;
+      const linkHeader = response.headers.link;
+      if (linkHeader) {
+        const lastMatch = linkHeader.match(/[&?]page=(\d+)[^>]*>;\s*rel="last"/);
+        if (lastMatch) {
+          totalCount = parseInt(lastMatch[1]) * perPage;
+        }
+      }
+      // If no Link header (single page), total is the data length
+      if (totalCount === null && response.data.length < perPage) {
+        totalCount = (page - 1) * perPage + response.data.length;
+      }
       
       return {
         repositories,
         page,
         perPage,
         hasMore: response.data.length === perPage,
+        totalCount,
       };
     } catch (error) {
       console.error(`Error fetching repositories for org ${org}:`, error);
-      return { repositories: [], page: 1, perPage: 30, hasMore: false };
+      return { repositories: [], page: 1, perPage: 30, hasMore: false, totalCount: null };
     }
   }
 

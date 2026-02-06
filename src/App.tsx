@@ -222,6 +222,10 @@ function App() {
   const {
     repositories,
     loadingRepos,
+    loadingMoreRepos,
+    hasMoreRepos,
+    totalRepos,
+    loadMoreRepos,
     selectedRepo,
     repoAppsShown,
     selectRepo,
@@ -380,6 +384,10 @@ function App() {
         <ReposView
           repositories={repositories}
           loadingRepos={loadingRepos}
+          loadingMoreRepos={loadingMoreRepos}
+          hasMoreRepos={hasMoreRepos}
+          totalRepos={totalRepos}
+          loadMoreRepos={loadMoreRepos}
           selectedRepo={selectedRepo}
           repoAppsShown={repoAppsShown}
           selectRepo={selectRepo}

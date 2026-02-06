@@ -152,6 +152,10 @@ const RepoSelectHint = styled.div`
 interface ReposViewProps {
   repositories: Repository[];
   loadingRepos: boolean;
+  loadingMoreRepos: boolean;
+  hasMoreRepos: boolean;
+  totalRepos: number | null;
+  loadMoreRepos: () => void;
   selectedRepo: string;
   repoAppsShown: number;
   selectRepo: (fullName: string) => void;
@@ -164,6 +168,10 @@ interface ReposViewProps {
 export function ReposView({
   repositories,
   loadingRepos,
+  loadingMoreRepos,
+  hasMoreRepos,
+  totalRepos,
+  loadMoreRepos,
   selectedRepo,
   repoAppsShown,
   selectRepo,
@@ -185,7 +193,7 @@ export function ReposView({
 
   return (
     <div>
-      <SectionTitle>Repositories {repositories.length > 0 && `(${repositories.length})`}</SectionTitle>
+      <SectionTitle>Repositories {repositories.length > 0 && `(${repositories.length}${totalRepos !== null && totalRepos > repositories.length ? `/${totalRepos}` : ''})`}</SectionTitle>
       {loadingRepos ? (
         <LoadingRow>
           <Spinner size="small" />
@@ -215,6 +223,18 @@ export function ReposView({
                 </RepoMeta>
               </RepoListItem>
             ))}
+            {hasMoreRepos && (
+              <RepoListItem as="div" onClick={loadMoreRepos} style={{ textAlign: 'center', cursor: loadingMoreRepos ? 'default' : 'pointer' }}>
+                {loadingMoreRepos ? (
+                  <LoadingRow style={{ justifyContent: 'center' }}>
+                    <Spinner size="small" />
+                    <MutedText>Loading...</MutedText>
+                  </LoadingRow>
+                ) : (
+                  <Button variant="invisible" onClick={loadMoreRepos}>Show more repositories</Button>
+                )}
+              </RepoListItem>
+            )}
           </RepoList>
 
           <RepoDetails>

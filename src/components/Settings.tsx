@@ -240,17 +240,22 @@ export const Settings: FC<SettingsProps> = ({
                 } else {
                   const value = parseInt(rawValue);
                   if (!isNaN(value)) {
-                    onInactiveDaysChange(Math.min(365, Math.max(0, value)));
+                    onInactiveDaysChange(Math.min(180, Math.max(0, value)));
                   }
                 }
               }}
               min={1}
-              max={365}
+              max={180}
               style={{ width: '80px' }}
             />
             <span>days</span>
           </InputCell>
-          <CaptionCell>For audit log usage detection</CaptionCell>
+          <CaptionCell>
+            For audit log usage detection (max 180 days —{' '}
+            <a href="https://docs.github.com/en/organizations/keeping-your-organization-secure/managing-security-settings-for-your-organization/reviewing-the-audit-log-for-your-organization" target="_blank" rel="noopener noreferrer">
+              GitHub API retention limit
+            </a>)
+          </CaptionCell>
         </FieldGroup>
 
         <ButtonGroup>
