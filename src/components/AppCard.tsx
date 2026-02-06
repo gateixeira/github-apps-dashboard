@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import ReactMarkdown from 'react-markdown';
 import {
   Avatar,
+  Button,
   Label,
   Link,
   Spinner,
@@ -228,15 +229,22 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
   const [expanded, setExpanded] = useState(false);
   const [repoData, setRepoData] = useState<Map<number, RepoData>>(new Map());
   const [loadingRepos, setLoadingRepos] = useState<Set<number>>(new Set());
+  const [repoErrors, setRepoErrors] = useState<Set<number>>(new Set());
 
   const loadRepositories = async (installation: AppInstallation) => {
     const installationId = installation.id;
     
-    // Skip if already loaded, loading, or if "all repositories" is selected
+    // Skip if already loaded or currently loading
     if (repoData.has(installationId) || loadingRepos.has(installationId)) return;
     if (installation.repository_selection === 'all') return;
 
     setLoadingRepos(prev => new Set(prev).add(installationId));
+    setRepoErrors(prev => {
+      if (!prev.has(installationId)) return prev;
+      const next = new Set(prev);
+      next.delete(installationId);
+      return next;
+    });
     try {
       const github = getGitHubService(token, enterpriseUrl);
       const allRepos: Repository[] = [];
@@ -263,6 +271,7 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
       }));
     } catch (error) {
       console.error('Failed to load repositories:', error);
+      setRepoErrors(prev => new Set(prev).add(installationId));
     } finally {
       setLoadingRepos(prev => {
         const next = new Set(prev);
@@ -368,6 +377,13 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Spinner size="small" />
                         <RepoLoadingText>Loading repositories...</RepoLoadingText>
+                      </div>
+                    ) : repoErrors.has(inst.id) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <RepoLoadingText>Failed to load repositories.</RepoLoadingText>
+                        <Button variant="invisible" size="small" onClick={() => loadRepositories(inst)}>
+                          Retry
+                        </Button>
                       </div>
                     ) : data ? (
                       <LabelGroup>
