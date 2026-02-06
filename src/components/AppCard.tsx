@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -272,12 +272,18 @@ export const AppCard: FC<AppCardProps> = ({ app, installations, token, enterpris
     }
   };
 
+  // Stable identity for the installations list to avoid re-triggering on every render
+  const installationIds = useMemo(
+    () => installations.map(i => i.id).join(','),
+    [installations],
+  );
+
   useEffect(() => {
     if (expanded) {
       installations.forEach(inst => loadRepositories(inst));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expanded, installations]);
+  }, [expanded, installationIds]);
 
   return (
     <Card>
