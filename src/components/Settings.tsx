@@ -132,6 +132,7 @@ export const Settings: FC<SettingsProps> = ({
 
   useEffect(() => {
     if (isConnected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowToast(true);
       setToastFading(false);
       

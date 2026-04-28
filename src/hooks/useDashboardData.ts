@@ -299,6 +299,7 @@ export function useDashboardData(token: string, enterpriseUrl?: string, filterOr
 
   useEffect(() => {
     if (token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadData();
     }
     return () => {
