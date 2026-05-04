@@ -35,7 +35,7 @@
   "dependencies": {
     "@octokit/rest": "^22.0.1",
     "@primer/octicons-react": "^19.25.0",
-    "@primer/react": "^38.21.0",
+    "@primer/react": "^38.21.1",
     "@types/styled-components": "^5.1.36",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
@@ -52,7 +52,7 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.5.0",
+    "globals": "^17.6.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.59.1",
     "vite": "^7.2.4"
